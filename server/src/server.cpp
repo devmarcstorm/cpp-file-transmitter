@@ -7,7 +7,9 @@
 int main()
 {
     // Create server thread
-    ServerThread server;
+    std::map<std::string, int> Clients;
+
+    ServerThread server(&Clients);
 
     if (server.broken)
     {
@@ -32,6 +34,6 @@ int main()
         }
     }
 
-    std::cout << "Program finished" << std::endl;
+    std::cout << "Shut down" << std::endl;
     return 0;
 }
