@@ -1,8 +1,8 @@
-#include "../hpp/clientThread.hpp"
+#include "../hpp/wClientThread.hpp"
 
-#include "../hpp/serverThread.hpp"
+#include "../hpp/wServerThread.hpp"
 
-    ClientThread::ClientThread(char* ip, int clientSocket, const ServerThread* server)
+    WClientThread::WClientThread(char* ip, int clientSocket, const WServerThread* server)
     {
         m_ip = ip;
 
@@ -13,16 +13,15 @@
         std::cout << "New client created" << std::endl;
     }
 
-    ClientThread::~ClientThread()
+    WClientThread::~WClientThread()
     {
         
     }
 
-    void ClientThread::operator()() const
+    void WClientThread::operator()() const
     {
         std::cout << "Client: " << m_clientSocket << " start receiving" << std::endl;
 
-        // While loop: accept and echo message back to client
         char buffer[4096];
 
         while (true)
@@ -34,7 +33,7 @@
 
             if (received == -1)
             {
-                std::cerr << "Error in recv(). Quitting" << std::endl;
+                std::cerr << m_ip << " disconneted" << std::endl;
                 break;
             }
 
@@ -63,49 +62,62 @@
 
             std::string message = std::string(buffer, 0, received);
 
-            std::cout << message << std::endl;
-
             // check message
             if (message != "")
             {
-                std::vector<std::string> parts = Tools::Split(message, '/');
+                std::vector<std::string> parts = Tools::Splitting(message, '/');
 
                 // message types
                 if (parts.at(2) == "text") // just text
                 {
                     std::string text = parts.at(3);
 
-                    std::cout << "Just text " << text << std::endl;
+                    std::cout << text << std::endl;
+
+                    // Echo message back to client
+                    send(m_clientSocket, buffer, sizeof(buffer) + 1, 0);
                 }
                 else if (parts.at(2) == "data send") // file to send
                 {
                     std::string remote_ip = parts.at(3);
-                    std::string filename = parts.at(4);
+                    std::string file = parts.at(4);
 
-                    std::cout << "Data send: ip: " << remote_ip << " file: " << filename << std::endl;
-
-                    // find the client of the remote_ip
                     std::map<std::string, int>::iterator It;
 
-                    It = mp_server->m_clients->find(remote_ip);
-
-                    if (It != mp_server->m_clients->end())
+                    if (remote_ip == "broadcast")
                     {
-                        std::cout << "Redirect to " << remote_ip << std::endl;
+                        std::cout << "Broadcast data send to all connected clients" << std::endl;
 
-                        send(It->second, buffer, received + 1, 0);
+                        // send data to all clients
+                        for (It = mp_server->m_clients->begin(); It != mp_server->m_clients->end(); It++)
+                        {
+                            // but not to the source
+                            if (It->first != m_ip)
+                            {
+                                send(It->second, buffer, sizeof(buffer) + 1, 0);
+                            }
+                        }
                     }
                     else
                     {
-                        std::cout << "No client with ip " << remote_ip << " connected" << std::endl;
+                        // find the client of the remote_ip
+                        It = mp_server->m_clients->find(remote_ip);
+
+                        if (It != mp_server->m_clients->end())
+                        {
+                            std::cout << "Redirect data send to " << remote_ip << std::endl;
+
+                            send(It->second, buffer, sizeof(buffer) + 1, 0);
+                        }
+                        else
+                        {
+                            std::cout << "No client with ip " << remote_ip << " connected" << std::endl;
+                        }
                     }
                 }
             }
-
-            // Echo message back to client
-            send(m_clientSocket, buffer, received + 1, 0);
         }
 
         // Close the socket
-        close(m_clientSocket);
+        closesocket(m_clientSocket);
     }

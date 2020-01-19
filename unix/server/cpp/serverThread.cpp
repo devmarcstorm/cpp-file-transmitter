@@ -20,9 +20,9 @@
     int ServerThread::Start()
     {
         // create socket
-        s = socket(AF_INET, SOCK_STREAM, 0);
+        listener = socket(AF_INET, SOCK_STREAM, 0);
 
-        if (s == -1)
+        if (listener == -1)
         {
             std::cerr << "ERROR: Can't create socket!" << std::endl;
             return -1;
@@ -34,7 +34,7 @@
         sockAddr.sin_port = htons(20000);
 
         inet_pton(AF_INET, "0.0.0.0", &sockAddr.sin_addr);
-        bind(s, (sockaddr *)&sockAddr, sizeof(sockAddr));
+        bind(listener, (sockaddr *)&sockAddr, sizeof(sockAddr));
 
         return 0;
     }
@@ -48,7 +48,7 @@
         std::cout << "Listening..." << std::endl;
 
         // listening
-        listen(s, SOMAXCONN);
+        listen(listener, SOMAXCONN);
 
         // wait for a connection
         sockaddr_in client;
@@ -88,7 +88,7 @@
         std::cout << "Close socket" << std::endl;
 
         // Close socket
-        close(s);
+        close(listener);
     }
 
     void ServerThread::Close()

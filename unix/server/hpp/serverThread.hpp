@@ -32,7 +32,7 @@ public:
     std::map<std::string, int> *m_clients;
 
 private:
-    int s;
+    int listener;
 
     bool run;
 };
