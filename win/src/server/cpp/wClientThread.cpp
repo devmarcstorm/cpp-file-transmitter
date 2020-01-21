@@ -80,7 +80,6 @@
                 else if (parts.at(2) == "data send") // file to send
                 {
                     std::string remote_ip = parts.at(3);
-                    std::string file = parts.at(4);
 
                     std::map<std::string, int>::iterator It;
 
@@ -107,7 +106,7 @@
                         {
                             std::cout << "Redirect data send to " << remote_ip << std::endl;
 
-                            send(It->second, buffer, sizeof(buffer) + 1, 0);
+                            send(It->second, buffer, sizeof(buffer), 0);
                         }
                         else
                         {
