@@ -15,6 +15,7 @@ include_directories("src/server/hpp/" "src/client/hpp/" "src/")
 add_executable(mcm_file_transmitter
 src/server/cpp/wServerThread.cpp
 src/server/cpp/wClientThread.cpp
+src/client/cpp/wreceiver.cpp
 src/client/cpp/wclient.cpp
 src/wmain.cpp
 )

@@ -1,54 +1,6 @@
 #include "../hpp/client.hpp"
 
-void receive(SOCKET s)
-{
-    char buffer[4096];
-
-    // Wait for response
-    memset(buffer, 0, 4096);
-    int received = recv(s, buffer, 4096, 0);
-
-    if (received == SOCKET_ERROR)
-    {
-        std::cerr << "Error response from server" << std::endl;
-    }
-    else
-    {
-        std::string message = std::string(buffer, 0, received);
-
-        // check message
-        if (message != "")
-        {
-            std::vector<std::string> parts = Tools::Splitting(message, '/');
-
-            // message types
-            if (parts.at(2) == "text") // just text
-            {
-                std::string text = parts.at(3);
-
-                std::cout << text << std::endl;
-            }
-            else if (parts.at(2) == "data send") // file to send
-            {
-                std::string file = parts.at(4);
-
-                std::string result;
-
-                macaron::Base64::Decode(file, result);
-
-                FILE* f;
-
-                f = fopen("test.txt", "wb");
-
-                fwrite(result.c_str(), sizeof(char), result.size(), f);
-
-                fclose(f);
-
-                std::cout << "File received" << std::endl;
-            }
-        }
-    }
-}
+#include "../hpp/receiver.hpp"
 
 Client::Client()
 {
@@ -87,11 +39,16 @@ void Client::start()
     {
         std::cout << "Connected" << std::endl;
     }
-    std::thread Receiver(receive, sock);
+
+    Receiver receiver(sock);
+
+    std::thread rec(receiver);
+
+    rec.detach();
 
     sender();
-
-    Receiver.join();
+    
+    receiver.m_run = false;
 
     close();
 }
@@ -124,8 +81,8 @@ void Client::sender()
         }
         else
         {
-            message = "mcm/1.0/text/" + input;
-            output = "mcm/1.0/text/" + input;
+            message = "mcm:1.0:text:" + input;
+            output = "mcm:1.0:text:" + input;
 
             std::cout << "Send message: " << output << std::endl;
 
@@ -205,7 +162,7 @@ void Client::readFile()
         }                
     }
 
-    output = "mcm/1.0/data send/" + remote_ip + "/" + filename + "/DATA/end/";
+    output = "mcm:1.0:data send:" + remote_ip + ":" + filename + ":DATA:end:";
 
     sendFile(document, filename);
 }
@@ -217,27 +174,13 @@ void Client::sendFile(std::string& file, std::string filename)
     {
         std::cout << "Send message: " << output << std::endl;
 
-        message = "mcm/1.0/data send/" + remote_ip + "/" + filename + "/";
+        message = "mcm:1.0:data send:" + remote_ip + ":" + filename + ":" + file + ":end:";
 
         int response = send(sock, message.c_str(), message.size(), 0);
 
         if (response == SOCKET_ERROR)
         {
-            std::cout << "Could not send prefix of file transfer to server!" << std::endl;
-        }
-
-        response = send(sock, file.c_str(), file.size(), 0);
-
-        if (response == SOCKET_ERROR)
-        {
             std::cout << "Could not send file to server!" << std::endl;
-        }
-
-        response = send(sock, "/end/", 5, 0);
-
-        if (response == SOCKET_ERROR)
-        {
-            std::cout << "Could not send suffix of file transfer to server!" << std::endl;
         }
     }
     else

@@ -66,27 +66,15 @@
             // check message
             if (message != "")
             {
-                std::vector<std::string> parts = Tools::Splitting(message, '/');
+                std::vector<std::string> parts = Tools::Splitting(message, ':');
 
-                // message types
-                if (parts.at(2) == "text") // just text
+                if(parts.at(parts.size() - 1) == "end" || parts.size() == 1)
                 {
-                    std::string text = parts.at(3);
-
-                    std::cout << text << std::endl;
-
-                    // Echo message back to client
-                    send(m_clientSocket, buffer, sizeof(buffer) + 1, 0);
-                }
-                else if (parts.at(2) == "data send") // file to send
-                {
-                    std::string remote_ip = parts.at(3);
-
                     std::map<std::string, int>::iterator It;
 
                     if (remote_ip == "broadcast")
                     {
-                        std::cout << "Broadcast data send to all connected clients" << std::endl;
+                        std::cout << "Broadcast to all connected clients" << std::endl;
 
                         // send data to all clients
                         for (It = mp_server->m_clients->begin(); It != mp_server->m_clients->end(); It++)
@@ -94,7 +82,7 @@
                             // but not to the source
                             if (It->first != m_ip)
                             {
-                                send(It->second, buffer, sizeof(buffer) + 1, 0);
+                                send(It->second, buffer, sizeof(buffer), 0);
                             }
                         }
                     }
@@ -105,7 +93,7 @@
 
                         if (It != mp_server->m_clients->end())
                         {
-                            std::cout << "Redirect data send to " << remote_ip << std::endl;
+                            std::cout << "Redirect to " << remote_ip << std::endl;
 
                             send(It->second, buffer, sizeof(buffer), 0);
                         }
@@ -115,9 +103,62 @@
                         }
                     }
                 }
+                else
+                {
+                    // message types
+                    if (parts.at(2) == "text") // text for the server
+                    {
+                        std::string text = parts.at(3);
+
+                        std::cout << text << std::endl;
+
+                        // Echo message back to client
+                        send(m_clientSocket, buffer, sizeof(buffer), 0);
+                    }
+                    else
+                    {
+                        if (parts.at(2) == "data send")
+                        {
+                            remote_ip = parts.at(3);
+                        }
+
+                        std::map<std::string, int>::iterator It;
+
+                        if (remote_ip == "broadcast")
+                        {
+                            std::cout << "Broadcast to all connected clients" << std::endl;
+
+                            // send data to all clients
+                            for (It = mp_server->m_clients->begin(); It != mp_server->m_clients->end(); It++)
+                            {
+                                // but not to the source
+                                if (It->first != m_ip)
+                                {
+                                    send(It->second, buffer, sizeof(buffer), 0);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // find the client of the remote_ip
+                            It = mp_server->m_clients->find(remote_ip);
+
+                            if (It != mp_server->m_clients->end())
+                            {
+                                std::cout << "Redirect to " << remote_ip << std::endl;
+
+                                send(It->second, buffer, sizeof(buffer), 0);
+                            }
+                            else
+                            {
+                                std::cout << "No client with ip " << remote_ip << " connected" << std::endl;
+                            }
+                        }
+                    }
+                }
             }
         }
-
+		
         // Close the socket
         close(m_clientSocket);
     }

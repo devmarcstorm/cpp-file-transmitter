@@ -31,7 +31,7 @@ public:
 private:
 
     void readFile();
-    void sendFile(std::string& file, std::string filename);
+    void sendFile(std::string file, std::string filename);
 
     SOCKET sock;
 

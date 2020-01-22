@@ -1,79 +1,6 @@
 #include "../hpp/wclient.hpp"
 
-void receive(SOCKET s)
-{
-    int received;
-
-    bool fileTransfer = false;
-
-    std::string file = "";
-    std::string filename = "";
-
-    char buffer[4096];
-
-    while (true)
-    {
-        memset(buffer, 0, 4096);
-
-        // Wait for response
-        received = recv(s, buffer, 4096, 0);
-
-        if (received == SOCKET_ERROR)
-        {
-            std::cerr << "Error response from server" << std::endl;
-        }
-        else
-        {
-            std::string message = std::string(buffer, 0, received);
-
-            // check message
-            if (message != "")
-            {
-                std::vector<std::string> parts = Tools::Splitting(message, '/');
-
-                if (parts.size() > 1)
-                {
-                    // message types
-                    if (parts.at(2) == "text") // just text
-                    {
-                        std::string text = parts.at(3);
-                    }
-                    else if (parts.at(2) == "data send") // file to send
-                    {
-                        fileTransfer = true;
-
-                        filename = parts.at(4);
-                    }
-                }
-                else if (parts.size() == 2)
-                {
-                    std::string result;
-
-                    filename += parts.at(0);
-
-                    macaron::Base64::Decode(file, result);
-
-                    FILE* f;
-
-                    f = fopen(filename.c_str(), "wb");
-
-                    fwrite(result.c_str(), sizeof(char), result.size(), f);
-
-                    fclose(f);
-
-                    fileTransfer = false;
-                }
-                else
-                {
-                    if (fileTransfer == true)
-                    {
-                        filename += parts.at(0);
-                    }
-                }
-            }
-        }
-    }
-}
+#include "../hpp/wreceiver.hpp"
 
 WClient::WClient()
 {
@@ -120,11 +47,15 @@ void WClient::start()
         std::cout << "Connected" << std::endl;
     }
 
-    std::thread Receiver(receive, sock);
+    WReceiver receiver(sock);
+
+    std::thread rec(receiver);
+
+    rec.detach();
 
     sender();
-
-    Receiver.join();
+    
+    receiver.m_run = false;
 
     close();
 }
@@ -157,8 +88,8 @@ void WClient::sender()
         }
         else
         {
-            message = "mcm/1.0/text/" + input;
-            output = "mcm/1.0/text/" + input;
+            message = "mcm:1.0:text:" + input;
+            output = "mcm:1.0:text:" + input;
 
             std::cout << "Send message: " << output << std::endl;
 
@@ -191,41 +122,48 @@ void WClient::readFile()
         {
             filename = parts.at(i).substr(5, parts.at(i).length() - 5);
 
-            // Read file
-
-            unsigned char buffer[1024];
-
-            FILE* f;
-
-            f = fopen(filename.c_str(), "rb");
-
-            if (f != nullptr)
+            if (filename.find_last_of(".") == std::string::npos)
             {
-                while (!feof(f))
-                {
-                    int bytes = fread(buffer, 1, 1024, f);
-
-                    for (int i = 0; i < bytes; i++)
-                    {
-                        document += buffer[i];
-                    }
-                }
-
-                fclose(f);
-
-                // Encoding
-                document = macaron::Base64::Encode(document);
-                
-                // Get file extension
-                std::vector<std::string> path = Tools::Splitting(filename, '/');
-
-                filename = path.at(path.size() - 1);
+                // Directory..
             }
             else
             {
-                isOK = false;
-                        
-                std::cout << "File not found" << std::endl;
+                // Read file
+
+                unsigned char buffer[1024];
+
+                FILE* f;
+
+                f = fopen(filename.c_str(), "rb");
+
+                if (f != nullptr)
+                {
+                    while (!feof(f))
+                    {
+                        int bytes = fread(buffer, 1, 1024, f);
+
+                        for (int i = 0; i < bytes; i++)
+                        {
+                            document += buffer[i];
+                        }
+                    }
+
+                    fclose(f);
+
+                    // Encoding
+                    document = macaron::Base64::Encode(document);
+
+                    // Get file extension
+                    std::vector<std::string> path = Tools::Splitting(filename, '/');
+
+                    filename = path.at(path.size() - 1);
+                }
+                else
+                {
+                    isOK = false;
+
+                    std::cout << "File not found" << std::endl;
+                }
             }
         }
         else
@@ -238,39 +176,25 @@ void WClient::readFile()
         }                
     }
 
-    output = "mcm/1.0/data send/" + remote_ip + "/" + filename + "/DATA/end/";
+    output = "mcm:1.0:data send:" + remote_ip + ":" + filename + ":DATA:end:";
 
     sendFile(document, filename);
 }
 
-void WClient::sendFile(std::string& file, std::string filename)
+void WClient::sendFile(std::string file, std::string filename)
 {
     // Send to server
     if (isOK == true)
     {
         std::cout << "Send message: " << output << std::endl;
 
-        message = "mcm/1.0/data send/" + remote_ip + "/" + filename + "/";
+        message = "mcm:1.0:data send:" + remote_ip + ":" + filename + ":" + file + ":end:";
 
         int response = send(sock, message.c_str(), message.size(), 0);
 
         if (response == SOCKET_ERROR)
         {
-            std::cout << "Could not send prefix of file transfer to server!" << std::endl;
-        }
-
-        response = send(sock, file.c_str(), file.size(), 0);
-
-        if (response == SOCKET_ERROR)
-        {
             std::cout << "Could not send file to server!" << std::endl;
-        }
-
-        response = send(sock, "/end/", 5, 0);
-
-        if (response == SOCKET_ERROR)
-        {
-            std::cout << "Could not send suffix of file transfer to server!" << std::endl;
         }
     }
     else
