@@ -1,6 +1,6 @@
-#include "../hpp/wclient.hpp"
+#include "../../header_files/client/wclient.hpp"
 
-#include "../hpp/wreceiver.hpp"
+#include "../../header_files/client/wreceiver.hpp"
 
 #include <filesystem>
 

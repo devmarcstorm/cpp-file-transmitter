@@ -10,14 +10,14 @@ set(SFML_DIR "../SFML-2.5.1/lib/cmake/SFML")
 
 find_package(SFML 2.5.1 COMPONENTS graphics REQUIRED)
 
-include_directories("src/server/hpp/" "src/client/hpp/" "src/")
+include_directories("src/header_files/" "src/header_files/client/" "src/header_files/server/")
 
 add_executable(mcm_file_transmitter
-src/server/cpp/wServerThread.cpp
-src/server/cpp/wClientThread.cpp
-src/client/cpp/wreceiver.cpp
-src/client/cpp/wclient.cpp
-src/wmain.cpp
+src/source_files/server/wServerThread.cpp
+src/source_files/server/wClientThread.cpp
+src/source_files/client/wreceiver.cpp
+src/source_files/client/wclient.cpp
+src/source_files/wmain.cpp
 )
 
 target_link_libraries(mcm_file_transmitter sfml-graphics)

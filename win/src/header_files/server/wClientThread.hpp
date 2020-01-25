@@ -1,8 +1,8 @@
 #ifndef WCLIENTTHREAD_HPP
 #define WCLIENTTHREAD_HPP
 
-#include "../../Tools.hpp"
-#include "../../Base64.hpp"
+#include "../Tools.hpp"
+#include "../Base64.hpp"
 
 class WServerThread;
 

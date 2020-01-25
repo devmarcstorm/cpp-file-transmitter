@@ -1,4 +1,4 @@
-#include "../hpp/wServerThread.hpp"
+#include "../../header_files/server/wServerThread.hpp"
 
 WServerThread::WServerThread(std::map<std::string, int>* clients)
 {

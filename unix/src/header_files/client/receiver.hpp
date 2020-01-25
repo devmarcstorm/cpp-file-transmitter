@@ -12,8 +12,8 @@
 #include <string>
 #include <thread>
 
-#include "../../Tools.hpp"
-#include "../../Base64.hpp"
+#include "../Tools.hpp"
+#include "../Base64.hpp"
 
 class Client;
 

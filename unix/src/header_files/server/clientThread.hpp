@@ -1,8 +1,8 @@
 #ifndef CLIENTTHREAD_HPP
 #define CLIENTTHREAD_HPP
 
-#include "../../../Tools.hpp"
-#include "../../../Base64.hpp"
+#include "../Tools.hpp"
+#include "../Base64.hpp"
 
 class ServerThread;
 

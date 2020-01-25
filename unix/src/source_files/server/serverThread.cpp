@@ -1,6 +1,6 @@
- #include "../hpp/serverThread.hpp"
+#include "../../header_files/server/serverThread.hpp"
  
-    ServerThread::ServerThread(std::map<std::string, int>* clients)
+ ServerThread::ServerThread(std::map<std::string, int>* clients)
     {
         m_clients = clients;
 

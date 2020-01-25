@@ -3,15 +3,15 @@
 #include <string>
 #include <thread>
 
-#include "server/hpp/serverThread.hpp"
-#include "client/hpp/client.hpp"
+#include "../../header_files/server/wServerThread.hpp"
+#include "../../header_files/client/wclient.hpp"
 
 int startServer()
 {
     // Create server thread
     std::map<std::string, int> Clients;
 
-    ServerThread server(&Clients);
+    WServerThread server(&Clients);
 
     if (server.broken)
     {
@@ -62,7 +62,7 @@ int main()
         }
         else if (input == "c")
         {
-            Client client;
+            WClient client;
 
             client.start();
 

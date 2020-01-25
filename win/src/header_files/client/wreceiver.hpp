@@ -11,8 +11,8 @@
 #include <vector>
 #include <thread>
 
-#include "../../Tools.hpp"
-#include "../../Base64.hpp"
+#include "../Tools.hpp"
+#include "../Base64.hpp"
 
 class WClient;
 

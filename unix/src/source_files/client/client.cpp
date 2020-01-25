@@ -1,6 +1,6 @@
-#include "../hpp/client.hpp"
+#include "../../header_files/client/client.hpp"
 
-#include "../hpp/receiver.hpp"
+#include "../../header_files/client/receiver.hpp"
 
 Client::Client() :
     isOK{false},

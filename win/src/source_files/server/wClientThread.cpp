@@ -1,8 +1,8 @@
-#include "../hpp/clientThread.hpp"
+#include "../../header_files/server/wClientThread.hpp"
 
-#include "../hpp/serverThread.hpp"
+#include "../../header_files/server/wServerThread.hpp"
 
-ClientThread::ClientThread(char* ip, int clientSocket, const ServerThread* server) :
+WClientThread::WClientThread(char* ip, int clientSocket, const WServerThread* server) :
     m_ip{ip},
     m_clientSocket{clientSocket},
     mp_server{server}
@@ -10,12 +10,12 @@ ClientThread::ClientThread(char* ip, int clientSocket, const ServerThread* serve
     std::cout << "New client created" << std::endl;
 }
 
-ClientThread::~ClientThread()
+WClientThread::~WClientThread()
 {
 
 }
 
-void ClientThread::operator()() const
+void WClientThread::operator()() const
 {
     std::cout << "Client: " << m_clientSocket << " start receiving" << std::endl;
 
@@ -177,5 +177,5 @@ void ClientThread::operator()() const
     }
 
     // Close the socket
-    close(m_clientSocket);
+    closesocket(m_clientSocket);
 }

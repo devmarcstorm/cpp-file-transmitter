@@ -1,6 +1,8 @@
-#include "../hpp/receiver.hpp"
+#include "../../header_files/client/wreceiver.hpp"
 
-Receiver::Receiver(Client* client, SOCKET sock) :
+#include "../../header_files/client/wclient.hpp"
+
+WReceiver::WReceiver(WClient* client, SOCKET sock) :
     mp_client{client},
     m_sock{sock},
     m_run{true}
@@ -8,7 +10,7 @@ Receiver::Receiver(Client* client, SOCKET sock) :
 
 }
 
-void Receiver::operator()() const
+void WReceiver::operator()() const
 {
     int received;
 
@@ -38,9 +40,6 @@ void Receiver::operator()() const
         else
         {
             std::string message{ std::string(buffer, 0, received) };
-
-            std::cout << message << std::endl;
-            std::cout << std::endl;
 
             // check message
             if (message != "")
@@ -120,8 +119,7 @@ void Receiver::operator()() const
     std::cout << "Stop receiving" << std::endl;
 }
 
-
-void Receiver::setFileInfos(bool& fileTransfer, std::string& remote_ip, std::string& filename, std::string& isDirectory, std::string& file, std::vector<std::string>& parts) const
+void WReceiver::setFileInfos(bool& fileTransfer, std::string& remote_ip, std::string& filename, std::string& isDirectory, std::string& file, std::vector<std::string>& parts) const
 {
     fileTransfer = true;
 
@@ -134,10 +132,10 @@ void Receiver::setFileInfos(bool& fileTransfer, std::string& remote_ip, std::str
     file = parts.at(6);
 }
 
-void Receiver::writeFile(std::string& file, std::string filename, std::string isDirectory) const
+void WReceiver::writeFile(std::string& file, std::string filename, std::string isDirectory) const
 {
-	if (mkdir("received", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != -1)
-	{
+    if (CreateDirectory("received", NULL) || ERROR_ALREADY_EXISTS == GetLastError())
+    {
         // create path
         std::vector<std::string> pathParts{ Tools::split(filename, '/') };
 
@@ -152,7 +150,7 @@ void Receiver::writeFile(std::string& file, std::string filename, std::string is
         {
             std::string newpath{ "received/" + Tools::concatenate(pathParts, i + 1) };
 
-            mkdir(newpath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+            CreateDirectoryA(newpath.c_str(), NULL);
         }
 
         if (isDirectory == "false")
@@ -182,7 +180,7 @@ void Receiver::writeFile(std::string& file, std::string filename, std::string is
     }
 }
 
-Receiver::~Receiver()
+WReceiver::~WReceiver()
 {
 
 }

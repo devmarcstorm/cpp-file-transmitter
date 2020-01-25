@@ -1,8 +1,8 @@
-#include "../hpp/wreceiver.hpp"
+#include "../../header_files/client/receiver.hpp"
 
-#include "../hpp/wclient.hpp"
+#include "../../header_files/client/client.hpp"
 
-WReceiver::WReceiver(WClient* client, SOCKET sock) :
+Receiver::Receiver(Client* client, SOCKET sock) :
     mp_client{client},
     m_sock{sock},
     m_run{true}
@@ -10,7 +10,7 @@ WReceiver::WReceiver(WClient* client, SOCKET sock) :
 
 }
 
-void WReceiver::operator()() const
+void Receiver::operator()() const
 {
     int received;
 
@@ -122,7 +122,8 @@ void WReceiver::operator()() const
     std::cout << "Stop receiving" << std::endl;
 }
 
-void WReceiver::setFileInfos(bool& fileTransfer, std::string& remote_ip, std::string& filename, std::string& isDirectory, std::string& file, std::vector<std::string>& parts) const
+
+void Receiver::setFileInfos(bool& fileTransfer, std::string& remote_ip, std::string& filename, std::string& isDirectory, std::string& file, std::vector<std::string>& parts) const
 {
     fileTransfer = true;
 
@@ -135,10 +136,10 @@ void WReceiver::setFileInfos(bool& fileTransfer, std::string& remote_ip, std::st
     file = parts.at(6);
 }
 
-void WReceiver::writeFile(std::string& file, std::string filename, std::string isDirectory) const
+void Receiver::writeFile(std::string& file, std::string filename, std::string isDirectory) const
 {
-    if (CreateDirectory("received", NULL) || ERROR_ALREADY_EXISTS == GetLastError())
-    {
+	if (mkdir("received", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != -1)
+	{
         // create path
         std::vector<std::string> pathParts{ Tools::split(filename, '/') };
 
@@ -153,7 +154,7 @@ void WReceiver::writeFile(std::string& file, std::string filename, std::string i
         {
             std::string newpath{ "received/" + Tools::concatenate(pathParts, i + 1) };
 
-            CreateDirectoryA(newpath.c_str(), NULL);
+            mkdir(newpath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
         }
 
         if (isDirectory == "false")
@@ -183,7 +184,7 @@ void WReceiver::writeFile(std::string& file, std::string filename, std::string i
     }
 }
 
-WReceiver::~WReceiver()
+Receiver::~Receiver()
 {
 
 }

@@ -1,35 +1,36 @@
-#ifndef CLIENT_HPP
-#define CLIENT_HPP
+#ifndef WCLIENT_HPP
+#define WCLIENT_HPP
 
+#pragma comment(lib, "ws2_32.lib")  // Linker
+#include <cstdio>
 #include <iostream>
-#include <sys/types.h>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <string.h>
+#include <WinSock2.h>
+#include <Windows.h>
+#include <fstream>
 #include <string>
+#include <vector>
+#include <thread>
 
-#include "../../Tools.hpp"
-#include "../../Base64.hpp"
+#include "../Tools.hpp"
+#include "../Base64.hpp"
 
-class Client
+class WClient
 {
 public:
 
-    Client();
+    WClient();
 
     void start();
 
     void sender();
 
     void close();
-	
-	void sendNextFile(std::string ip);
+
+    void sendNextFile(std::string ip);
 
     void sendFile();
 
-    ~Client();
+    ~WClient();
 
 private:
 
