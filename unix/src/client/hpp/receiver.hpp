@@ -15,11 +15,13 @@
 #include "../../Tools.hpp"
 #include "../../Base64.hpp"
 
+class Client;
+
 class Receiver
 {
 public:
 
-    Receiver(SOCKET sock);
+    Receiver(Client* client, SOCKET sock);
 
     void operator()() const;
 
@@ -28,6 +30,12 @@ public:
     bool m_run;
 
 private:
+
+    void setFileInfos(bool& fileTransfer, std::string& remote_ip, std::string& filename, std::string& isDirectory, std::string& file, std::vector<std::string>& parts) const;
+
+    void writeFile(std::string& file, std::string filename, std::string isDirectory) const;
+
+    WClient* mp_client;
 
     SOCKET m_sock;
 };

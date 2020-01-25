@@ -2,7 +2,10 @@
 
 #include "../hpp/receiver.hpp"
 
-Client::Client()
+Client::Client() :
+    isOK{false},
+    singleFile{false},
+    offset{0}
 {
 
 }
@@ -12,9 +15,9 @@ void Client::start()
     int response;
 
     // Create socket
-    int s = socket(AF_INET, SOCK_STREAM, 0);
+    int sock = socket(AF_INET, SOCK_STREAM, 0);
 
-    if (s == -1)
+    if (sock == INVALID_SOCKET)
     {
         std::cout << "Cant create socket" << std::endl;
     }
@@ -31,7 +34,7 @@ void Client::start()
     // Connect to the server on the socket
     response = connect(s, (sockaddr*)&hint, sizeof(hint));
     
-    if (response == -1)
+    if (response == SOCKET_ERROR)
     {
         std::cout << "Cant bind" << std::endl;
     }
@@ -61,7 +64,11 @@ void Client::sender()
     {
         // reset variables
         isOK = true;
-        remote_ip = "broadcast";
+		
+        if (singleFile == true)
+        {
+            remote_ip = "broadcast";
+        }
         
         // user input
         std::cout << "> ";
@@ -77,7 +84,7 @@ void Client::sender()
         // Send file
         if (input.substr(0, 2) == "-f")
         {
-            readFile();
+            readPath();
         }
         else
         {
@@ -97,15 +104,52 @@ void Client::sender()
     }
 }
 
-void Client::readFile()
+void WClient::sendNextFile(std::string ip)
 {
-    std::string filename;
-    std::string filetype;
-    std::string document;
+    output = "mcm:1.0:send next:" + remote_ip + ":end:";
+    message = "mcm:1.0:send next:" + remote_ip + ":end:";
 
-    std::vector<std::string> parts = Tools::Splitting(input, ' ');
+    int response = send(sock, message.c_str(), message.size(), 0);
 
-    for (int i = 1; i < parts.size(); i++)
+    if (response == SOCKET_ERROR)
+    {
+        std::cout << "Could not send message to server!" << std::endl;
+    }
+}
+
+void Client::sendFile()
+{
+    if (singleFile == false)
+    {
+        if (files_It != m_Files.end())
+        {
+            if (std::filesystem::is_directory(files_It->c_str()) == true)
+            {
+                isDirectory = "true";
+            }
+            else
+            {
+                isDirectory = "false";
+            }
+
+            readFile(files_It->c_str());
+
+            files_It++;
+        }
+        else
+        {
+            singleFile = true;
+        }
+    }
+}
+
+void Client::readPath()
+{
+    std::string filename{ "" };
+
+    std::vector<std::string> parts{ Tools::split(input, ' ') };
+
+    for (int i{ 1 }; i < parts.size(); i++)
     {
         if (parts.at(i).substr(0, 3) == "ip=")
         {
@@ -115,41 +159,27 @@ void Client::readFile()
         {
             filename = parts.at(i).substr(5, parts.at(i).length() - 5);
 
-            // Read file
+            std::vector<std::string> pathParts{ Tools::split(filename, '/') };
 
-            unsigned char buffer[1024];
+            offset = filename.size() - pathParts.at(pathParts.size() - 1).size();
 
-            FILE* f;
-
-            f = fopen(filename.c_str(), "rb");
-
-            if (f != nullptr)
+            if (std::filesystem::is_directory(filename) == true)
             {
-                while (!feof(f))
-                {
-                    int bytes = fread(buffer, 1, 1024, f);
+                singleFile = false;
 
-                    for (int i = 0; i < bytes; i++)
-                    {
-                        document += buffer[i];
-                    }
-                }
+                m_Files = Tools::readDirectory(filename);
 
-                fclose(f);
+                files_It = m_Files.begin();
 
-                // Encoding
-                document = macaron::Base64::Encode(document);
-                
-                // Get file extension
-                std::vector<std::string> path = Tools::Splitting(filename, '/');
-
-                filename = path.at(path.size() - 1);
+                sendFile();
             }
             else
             {
-                isOK = false;
-                        
-                std::cout << "File not found" << std::endl;
+                singleFile = true;
+
+                isDirectory = "false";
+
+                readFile(filename);
             }
         }
         else
@@ -162,9 +192,57 @@ void Client::readFile()
         }                
     }
 
-    output = "mcm:1.0:data send:" + remote_ip + ":" + filename + ":DATA:end:";
+    output = "mcm:1.0:data send:" + remote_ip + ":" + filename + ":" + isDirectory + ":DATA:end:";
 
-    sendFile(document, filename);
+    std::cout << "Send message: " << output << std::endl;
+}
+
+void Client::readFile(std::string filename)
+{
+    // Read file
+
+    std::string document{ "" };
+
+    if (std::filesystem::is_directory(filename) == false)
+    {
+        unsigned char buffer[1024];
+
+        FILE* f;
+
+        f = fopen(filename.c_str(), "rb");
+
+        if (f != nullptr)
+        {
+            while (!feof(f))
+            {
+                int bytes = fread(buffer, 1, 1024, f);
+
+                for (int i = 0; i < bytes; i++)
+                {
+                    document += buffer[i];
+                }
+            }
+
+            fclose(f);
+
+            // Encoding
+            document = macaron::Base64::Encode(document);
+
+            sendFile(document, filename);
+        }
+        else
+        {
+            isOK = false;
+
+            std::cout << "File not found" << std::endl;
+        }
+    }
+    else
+    {
+        document = "null";
+
+        sendFile(document, filename);
+    }
 }
 
 void Client::sendFile(std::string& file, std::string filename)
@@ -172,9 +250,9 @@ void Client::sendFile(std::string& file, std::string filename)
     // Send to server
     if (isOK == true)
     {
-        std::cout << "Send message: " << output << std::endl;
+        filename = filename.substr(offset, filename.size() - offset);
 
-        message = "mcm:1.0:data send:" + remote_ip + ":" + filename + ":" + file + ":end:";
+        message = "mcm:1.0:data send:" + remote_ip + ":" + filename + ":" + isDirectory + ":" + file + ":end:";
 
         int response = send(sock, message.c_str(), message.size(), 0);
 
@@ -188,7 +266,6 @@ void Client::sendFile(std::string& file, std::string filename)
         std::cout << "Could not send message: " << message << std::endl;
     }
 }
-
 void Client::close()
 {
     std::cout << "Shut down client..." << std::endl;   

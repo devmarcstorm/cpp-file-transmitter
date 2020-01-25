@@ -2,7 +2,12 @@
 
 #include "../hpp/wreceiver.hpp"
 
-WClient::WClient()
+#include <filesystem>
+
+WClient::WClient() :
+    isOK{false},
+    singleFile{false},
+    offset{0}
 {
 
 }
@@ -47,7 +52,7 @@ void WClient::start()
         std::cout << "Connected" << std::endl;
     }
 
-    WReceiver receiver(sock);
+    WReceiver receiver(this, sock);
 
     std::thread rec(receiver);
 
@@ -68,8 +73,12 @@ void WClient::sender()
     {
         // reset variables
         isOK = true;
-        remote_ip = "broadcast";
-        
+
+        if (singleFile == true)
+        {
+            remote_ip = "broadcast";
+        }
+
         // user input
         std::cout << "> ";
         
@@ -84,7 +93,7 @@ void WClient::sender()
         // Send file
         if (input.substr(0, 2) == "-f")
         {
-            readFile();
+            readPath();
         }
         else
         {
@@ -104,15 +113,52 @@ void WClient::sender()
     }
 }
 
-void WClient::readFile()
+void WClient::sendNextFile(std::string ip)
 {
-    std::string filename;
-    std::string filetype;
-    std::string document;
+    output = "mcm:1.0:send next:" + remote_ip + ":end:";
+    message = "mcm:1.0:send next:" + remote_ip + ":end:";
 
-    std::vector<std::string> parts = Tools::Splitting(input, ' ');
+    int response = send(sock, message.c_str(), message.size(), 0);
 
-    for (int i = 1; i < parts.size(); i++)
+    if (response == SOCKET_ERROR)
+    {
+        std::cout << "Could not send message to server!" << std::endl;
+    }
+}
+
+void WClient::sendFile()
+{
+    if (singleFile == false)
+    {
+        if (files_It != m_Files.end())
+        {
+            if (std::filesystem::is_directory(files_It->c_str()) == true)
+            {
+                isDirectory = "true";
+            }
+            else
+            {
+                isDirectory = "false";
+            }
+
+            readFile(files_It->c_str());
+
+            files_It++;
+        }
+        else
+        {
+            singleFile = true;
+        }
+    }
+}
+
+void WClient::readPath()
+{
+    std::string filename{ "" };
+
+    std::vector<std::string> parts{ Tools::split(input, ' ') };
+
+    for (int i{ 1 }; i < parts.size(); i++)
     {
         if (parts.at(i).substr(0, 3) == "ip=")
         {
@@ -122,48 +168,27 @@ void WClient::readFile()
         {
             filename = parts.at(i).substr(5, parts.at(i).length() - 5);
 
-            if (filename.find_last_of(".") == std::string::npos)
+            std::vector<std::string> pathParts{ Tools::split(filename, '/') };
+
+            offset = filename.size() - pathParts.at(pathParts.size() - 1).size();
+
+            if (std::filesystem::is_directory(filename) == true)
             {
-                // Directory..
+                singleFile = false;
+
+                m_Files = Tools::readDirectory(filename);
+
+                files_It = m_Files.begin();
+
+                sendFile();
             }
             else
             {
-                // Read file
+                singleFile = true;
 
-                unsigned char buffer[1024];
+                isDirectory = "false";
 
-                FILE* f;
-
-                f = fopen(filename.c_str(), "rb");
-
-                if (f != nullptr)
-                {
-                    while (!feof(f))
-                    {
-                        int bytes = fread(buffer, 1, 1024, f);
-
-                        for (int i = 0; i < bytes; i++)
-                        {
-                            document += buffer[i];
-                        }
-                    }
-
-                    fclose(f);
-
-                    // Encoding
-                    document = macaron::Base64::Encode(document);
-
-                    // Get file extension
-                    std::vector<std::string> path = Tools::Splitting(filename, '/');
-
-                    filename = path.at(path.size() - 1);
-                }
-                else
-                {
-                    isOK = false;
-
-                    std::cout << "File not found" << std::endl;
-                }
+                readFile(filename);
             }
         }
         else
@@ -176,19 +201,67 @@ void WClient::readFile()
         }                
     }
 
-    output = "mcm:1.0:data send:" + remote_ip + ":" + filename + ":DATA:end:";
+    output = "mcm:1.0:data send:" + remote_ip + ":" + filename + ":" + isDirectory + ":DATA:end:";
 
-    sendFile(document, filename);
+    std::cout << "Send message: " << output << std::endl;
 }
 
-void WClient::sendFile(std::string file, std::string filename)
+void WClient::readFile(std::string filename)
+{
+    // Read file
+
+    std::string document{ "" };
+
+    if (std::filesystem::is_directory(filename) == false)
+    {
+        unsigned char buffer[1024];
+
+        FILE* f;
+
+        f = fopen(filename.c_str(), "rb");
+
+        if (f != nullptr)
+        {
+            while (!feof(f))
+            {
+                int bytes = fread(buffer, 1, 1024, f);
+
+                for (int i = 0; i < bytes; i++)
+                {
+                    document += buffer[i];
+                }
+            }
+
+            fclose(f);
+
+            // Encoding
+            document = macaron::Base64::Encode(document);
+
+            sendFile(document, filename);
+        }
+        else
+        {
+            isOK = false;
+
+            std::cout << "File not found" << std::endl;
+        }
+    }
+    else
+    {
+        document = "null";
+
+        sendFile(document, filename);
+    }
+}
+
+void WClient::sendFile(std::string& file, std::string filename)
 {
     // Send to server
     if (isOK == true)
     {
-        std::cout << "Send message: " << output << std::endl;
+        filename = filename.substr(offset, filename.size() - offset);
 
-        message = "mcm:1.0:data send:" + remote_ip + ":" + filename + ":" + file + ":end:";
+        message = "mcm:1.0:data send:" + remote_ip + ":" + filename + ":" + isDirectory + ":" + file + ":end:";
 
         int response = send(sock, message.c_str(), message.size(), 0);
 

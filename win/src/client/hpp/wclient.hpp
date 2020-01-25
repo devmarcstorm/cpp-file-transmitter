@@ -26,21 +26,33 @@ public:
 
     void close();
 
+    void sendNextFile(std::string ip);
+
+    void sendFile();
+
     ~WClient();
 
 private:
 
-    void readFile();
-    void sendFile(std::string file, std::string filename);
+    void readPath();
+    void readFile(std::string filename);
+    void sendFile(std::string& file, std::string filename);
 
     SOCKET sock;
 
     bool isOK;
+    bool singleFile;
 
+    std::string isDirectory;
     std::string remote_ip;
     std::string message;
     std::string output;
     std::string input;
+
+    int offset;
+
+    std::vector<std::string> m_Files;
+    std::vector<std::string>::iterator files_It;
 };
 
 #endif
