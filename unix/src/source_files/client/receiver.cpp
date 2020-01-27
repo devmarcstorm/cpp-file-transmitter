@@ -2,16 +2,21 @@
 
 #include "../../header_files/client/client.hpp"
 
+#include "../../header_files/gui/textArea.hpp"
+
+#include "../../header_files/display.hpp"
+
 Receiver::Receiver(Client* client, SOCKET sock) :
     mp_client{client},
-    m_sock{sock},
-    m_run{true}
+    m_sock{sock}
 {
 
 }
 
-void Receiver::operator()() const
+void Receiver::operator()(std::future<void> futureObj) const
 {
+    std::cout << "Start receiving" << std::endl;
+	
     int received;
 
     bool fileTransfer{ false };
@@ -40,10 +45,7 @@ void Receiver::operator()() const
         else
         {
             std::string message{ std::string(buffer, 0, received) };
-
-            std::cout << message << std::endl;
-            std::cout << std::endl;
-
+			
             // check message
             if (message != "")
             {

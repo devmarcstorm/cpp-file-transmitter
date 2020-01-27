@@ -1,20 +1,9 @@
 #include "../../header_files/server/serverThread.hpp"
  
- ServerThread::ServerThread(std::map<std::string, int>* clients)
+	ServerThread::ServerThread(std::map<std::string, int>* clients) :
+     mClients{ clients }
     {
-        m_clients = clients;
 
-        broken = false;
-        run = false;
-
-        if (Start() == -1)
-        {
-            broken = true;
-        }
-        else
-        {
-            run = true;
-        }
     }
 
     int ServerThread::Start()
@@ -43,7 +32,7 @@
     {
     }
 
-    void ServerThread::operator()() const
+	void ServerThread::operator()(std::future<void> futureObj) const
     {
         std::cout << "Listening..." << std::endl;
 
@@ -54,44 +43,61 @@
         sockaddr_in client;
         socklen_t clientSize = sizeof(client);
 
-        while (run)
-        {
-            // get client
-            int clientSocket = accept(s, (sockaddr *)&client, &clientSize);
+		fd_set read_fds;
+		FD_ZERO(&read_fds);
+		FD_SET(mListener, &read_fds);
 
-            char hostname[NI_MAXHOST];
-            char port[NI_MAXSERV];
+		timeval timeout;
+		timeout.tv_sec = 2;
+		timeout.tv_usec = 0;
 
-            memset(hostname, 0, NI_MAXHOST);
-            memset(port, 0, NI_MAXSERV);
+		int select_status;
 
-            if (getnameinfo((sockaddr *)&client, sizeof(client), hostname, NI_MAXHOST, port, NI_MAXSERV, 0) == 0)
-            {
-                std::cout << "Client " << hostname << " connected! Port " << port << std::endl;
-            }
-            else
-            {
-                inet_ntop(AF_INET, &client.sin_addr, hostname, NI_MAXHOST);
-                std::cout << "Client " << hostname << " connected! Port " << port << std::endl;
-            }
-            
-            ClientThread clientthread(hostname, clientSocket, this);
-            std::thread newClient(clientthread);
+		while (futureObj.wait_for(std::chrono::milliseconds(1)) == std::future_status::timeout)
+		{
+			 // select() is non-blocking
+			select_status = select(mListener, &read_fds, NULL, NULL, &timeout);
 
-            newClient.detach();
+			if (select_status > 0)
+			{            
+				// get client
+				int clientSocket = accept(s, (sockaddr *)&client, &clientSize);
 
-            m_clients->insert(std::pair<std::string, int>(hostname, clientSocket));
+				char hostname[NI_MAXHOST];
+				char port[NI_MAXSERV];
 
-            std::cout << "Count of connected clients: " << m_clients->size() << std::endl;
+				memset(hostname, 0, NI_MAXHOST);
+				memset(port, 0, NI_MAXSERV);
+
+				if (getnameinfo((sockaddr *)&client, sizeof(client), hostname, NI_MAXHOST, port, NI_MAXSERV, 0) == 0)
+				{
+					std::cout << "Client " << hostname << " connected! Port " << port << std::endl;
+				}
+				else
+				{
+					inet_ntop(AF_INET, &client.sin_addr, hostname, NI_MAXHOST);
+					std::cout << "Client " << hostname << " connected! Port " << port << std::endl;
+				}
+				
+				ClientThread clientthread(hostname, clientSocket, this);
+				std::thread newClient(clientthread);
+
+				newClient.detach();
+
+				m_clients->insert(std::pair<std::string, int>(hostname, clientSocket));
+
+				std::cout << "Count of connected clients: " << m_clients->size() << std::endl;
+			}
         }
 
-        std::cout << "Close socket" << std::endl;
-
-        // Close socket
-        close(listener);
+		Close();
     }
 
     void ServerThread::Close()
     {
-        run = false;
+		close(listener);
+
+		mClients->clear();
+
+		std::cout << "Shut down server" << std::endl;
     }

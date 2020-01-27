@@ -12,6 +12,9 @@
 #include <string>
 #include <thread>
 
+#include <chrono>
+#include <future>
+
 #include "../Tools.hpp"
 #include "../Base64.hpp"
 
@@ -23,7 +26,7 @@ public:
 
     Receiver(Client* client, SOCKET sock);
 
-    void operator()() const;
+    void operator()(std::future<void> futureObj) const;
 
     ~Receiver();
 

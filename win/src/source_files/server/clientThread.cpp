@@ -1,23 +1,23 @@
-#include "../../header_files/server/wClientThread.hpp"
+#include "../../header_files/server/clientThread.hpp"
 
-#include "../../header_files/server/wServerThread.hpp"
+#include "../../header_files/server/serverThread.hpp"
 
-WClientThread::WClientThread(char* ip, int clientSocket, const WServerThread* server) :
-    m_ip{ip},
-    m_clientSocket{clientSocket},
-    mp_server{server}
+ClientThread::ClientThread(char* ip, int clientSocket, const ServerThread* server) :
+    mIp{ ip },
+    mClientSocket{ clientSocket },
+    mpServer{ server }
 {
     std::cout << "New client created" << std::endl;
 }
 
-WClientThread::~WClientThread()
+ClientThread::~ClientThread()
 {
 
 }
 
-void WClientThread::operator()() const
+void ClientThread::operator()() const
 {
-    std::cout << "Client: " << m_clientSocket << " start receiving" << std::endl;
+    std::cout << "Client: " << mClientSocket << " start receiving" << std::endl;
 
     char buffer[4096];
 
@@ -28,11 +28,11 @@ void WClientThread::operator()() const
         memset(buffer, 0, 4096); // Initialize/Cleanup buffer
 
         // Wait for client to send data
-        int received = recv(m_clientSocket, buffer, 4096, 0);
+        int received = recv(mClientSocket, buffer, 4096, 0);
 
         if (received == SOCKET_ERROR)
         {
-            std::cerr << m_ip << " disconneted" << std::endl;
+            std::cerr << mIp << " disconneted" << std::endl;
             break;
         }
 
@@ -41,20 +41,20 @@ void WClientThread::operator()() const
             // remove client from list
             std::map<std::string, int>::iterator It;
 
-            It = mp_server->m_clients->find(m_ip);
+            It = mpServer->mClients->find(mIp);
 
-            if (It != mp_server->m_clients->end())
+            if (It != mpServer->mClients->end())
             {
-                It = mp_server->m_clients->erase(It);
+                It = mpServer->mClients->erase(It);
             }
             else
             {
                 std::cout << "Some mysterious error occurs" << std::endl;
             }
 
-            std::cout << m_ip << " disconnected" << std::endl;
+            std::cout << mIp << " disconnected" << std::endl;
 
-            std::cout << "Count of connected clients: " << mp_server->m_clients->size() << std::endl;
+            std::cout << "Count of connected clients: " << mpServer->mClients->size() << std::endl;
 
             break;
         }
@@ -75,10 +75,10 @@ void WClientThread::operator()() const
                     std::cout << "Broadcast 'data append' to all connected clients" << std::endl;
 
                     // send data to all clients
-                    for (It = mp_server->m_clients->begin(); It != mp_server->m_clients->end(); It++)
+                    for (It = mpServer->mClients->begin(); It != mpServer->mClients->end(); It++)
                     {
                         // but not to the source
-                        if (It->first != m_ip)
+                        if (It->first != mIp)
                         {
                             send(It->second, buffer, sizeof(buffer), 0);
                         }
@@ -87,9 +87,9 @@ void WClientThread::operator()() const
                 else
                 {
                     // find the client of the remote_ip
-                    It = mp_server->m_clients->find(remote_ip);
+                    It = mpServer->mClients->find(remote_ip);
 
-                    if (It != mp_server->m_clients->end())
+                    if (It != mpServer->mClients->end())
                     {
                         std::cout << "Redirect 'data append' to " << remote_ip << std::endl;
 
@@ -108,17 +108,15 @@ void WClientThread::operator()() const
                 {
                     std::string text{ parts.at(3) };
 
-                    std::cout << text << std::endl;
-
                     // Echo message back to client
-                    send(m_clientSocket, buffer, sizeof(buffer), 0);
+                    send(mClientSocket, buffer, sizeof(buffer), 0);
                 }
                 else if (parts.at(2) == "send next")
                 {
                     // find the client of the remote_ip
-                    std::map<std::string, int>::iterator It{ mp_server->m_clients->find(remote_ip) };
+                    std::map<std::string, int>::iterator It{ mpServer->mClients->find(remote_ip) };
 
-                    if (It != mp_server->m_clients->end())
+                    if (It != mpServer->mClients->end())
                     {
                         std::cout << "Redirect 'next' to " << remote_ip << std::endl;
 
@@ -146,10 +144,10 @@ void WClientThread::operator()() const
                         std::cout << "Broadcast 'data' to all connected clients" << std::endl;
 
                         // send data to all clients
-                        for (It = mp_server->m_clients->begin(); It != mp_server->m_clients->end(); It++)
+                        for (It = mpServer->mClients->begin(); It != mpServer->mClients->end(); It++)
                         {
                             // but not to the source
-                            if (It->first != m_ip)
+                            if (It->first != mIp)
                             {
                                 send(It->second, buffer, sizeof(buffer), 0);
                             }
@@ -158,9 +156,9 @@ void WClientThread::operator()() const
                     else
                     {
                         // find the client of the remote_ip
-                        It = mp_server->m_clients->find(remote_ip);
+                        It = mpServer->mClients->find(remote_ip);
 
-                        if (It != mp_server->m_clients->end())
+                        if (It != mpServer->mClients->end())
                         {
                             std::cout << "Redirect 'data' to " << remote_ip << std::endl;
 
@@ -177,5 +175,5 @@ void WClientThread::operator()() const
     }
 
     // Close the socket
-    closesocket(m_clientSocket);
+    closesocket(mClientSocket);
 }

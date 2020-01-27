@@ -1,17 +1,22 @@
-#include "../../header_files/client/wreceiver.hpp"
+#include "../../header_files/client/receiver.hpp"
 
-#include "../../header_files/client/wclient.hpp"
+#include "../../header_files/client/client.hpp"
 
-WReceiver::WReceiver(WClient* client, SOCKET sock) :
-    mp_client{client},
-    m_sock{sock},
-    m_run{true}
+#include "../../header_files/gui/textArea.hpp"
+
+#include "../../header_files/display.hpp"
+
+Receiver::Receiver(Client* client, SOCKET sock) :
+    mpClient{client},
+    mSock{sock}
 {
 
 }
 
-void WReceiver::operator()() const
+void Receiver::operator()(std::future<void> futureObj) const
 {
+    std::cout << "Start receiving" << std::endl;
+
     int received;
 
     bool fileTransfer{ false };
@@ -24,12 +29,12 @@ void WReceiver::operator()() const
 
     char buffer[4096];
 
-    while (m_run)
+    while (futureObj.wait_for(std::chrono::milliseconds(1)) == std::future_status::timeout)
     {
         memset(buffer, 0, 4096); // Initialize/Cleanup buffer
 
         // Wait for response
-        received = recv(m_sock, buffer, 4096, 0);
+        received = recv(mSock, buffer, 4096, 0);
 
         if (received == SOCKET_ERROR)
         {
@@ -63,11 +68,11 @@ void WReceiver::operator()() const
 
                             fileTransfer = false;
 
-                            mp_client->sendNextFile(remote_ip);
+                            mpClient->sendNextFile(remote_ip);
                         }
                         else if (parts.at(2) == "send next")
                         {
-                            mp_client->sendFile();
+                            mpClient->sendFile();
                         }
                     }
 
@@ -86,7 +91,7 @@ void WReceiver::operator()() const
 
                         fileTransfer = false;
 
-                        mp_client->sendNextFile(remote_ip);
+                        mpClient->sendNextFile(remote_ip);
                     }
                     else // receiving begin message
                     {
@@ -94,6 +99,8 @@ void WReceiver::operator()() const
                         if (parts.at(2) == "text") // just text
                         {
                             std::string text{ parts.at(3) };
+
+                            std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine(parts.at(3), sf::Color::White);
                         }
                         else if (parts.at(2) == "data send") // file to send
                         {
@@ -101,7 +108,7 @@ void WReceiver::operator()() const
                         }
                         else if (parts.at(2) == "send next")
                         {
-                            mp_client->sendFile();
+                            mpClient->sendFile();
                         }
                     }
                 }
@@ -119,7 +126,7 @@ void WReceiver::operator()() const
     std::cout << "Stop receiving" << std::endl;
 }
 
-void WReceiver::setFileInfos(bool& fileTransfer, std::string& remote_ip, std::string& filename, std::string& isDirectory, std::string& file, std::vector<std::string>& parts) const
+void Receiver::setFileInfos(bool& fileTransfer, std::string& remote_ip, std::string& filename, std::string& isDirectory, std::string& file, std::vector<std::string>& parts) const
 {
     fileTransfer = true;
 
@@ -132,7 +139,7 @@ void WReceiver::setFileInfos(bool& fileTransfer, std::string& remote_ip, std::st
     file = parts.at(6);
 }
 
-void WReceiver::writeFile(std::string& file, std::string filename, std::string isDirectory) const
+void Receiver::writeFile(std::string& file, std::string filename, std::string isDirectory) const
 {
     if (CreateDirectory("received", NULL) || ERROR_ALREADY_EXISTS == GetLastError())
     {
@@ -180,7 +187,7 @@ void WReceiver::writeFile(std::string& file, std::string filename, std::string i
     }
 }
 
-WReceiver::~WReceiver()
+Receiver::~Receiver()
 {
 
 }

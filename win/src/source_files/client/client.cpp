@@ -7,33 +7,44 @@
 #include "../../header_files/display.hpp"
 
 Client::Client() :
-    isOK{false},
-    singleFile{false},
-    offset{0}
+    mIsOK{ false },
+    mSingleFile{ false },
+    mOffset{ 0 }
 {
 
 }
 
 int Client::start(std::string ip)
 {
-    int response;
+   int response;
 
-    // Create socket
-    sock = socket(AF_INET, SOCK_STREAM, 0);
+    // Versiondata
+    WSADATA wsaData;
 
-    if (sock == INVALID_SOCKET)
+    response = WSAStartup(MAKEWORD(2, 0), &wsaData);
+
+    if (response != 0)
     {
-        std::cout << "Cant create socket" << std::endl;
+        std::cerr << "WSAStartup failed: " << WSAGetLastError() << std::endl;
     }
 
-    sockaddr_in hint;
-    hint.sin_family = AF_INET;
-    hint.sin_port = htons(20000);
-    inet_pton(AF_INET, ip.c_str(), &hint.sin_addr);
+    // Create socket
+    mSock = socket(AF_INET, SOCK_STREAM, 0);
 
-    // Connect to the server on the socket
-    response = connect(s, (sockaddr*)&hint, sizeof(hint));
-    
+    if (mSock == INVALID_SOCKET)
+    {
+        std::cerr << "Cant create socket: " << WSAGetLastError() << std::endl;
+    }
+
+    // Connection informations
+
+    sockaddr_in info;
+    info.sin_addr.s_addr = inet_addr(ip.c_str());   // Server ip
+    info.sin_family = AF_INET;
+    info.sin_port = htons(20000);                   // Server port
+
+    response = connect(mSock, (struct sockaddr*)&info, sizeof(info));
+
     if (response == SOCKET_ERROR)
     {
         std::cout << "(ERROR) Cant connect: " << WSAGetLastError() << std::endl;
@@ -55,7 +66,7 @@ int Client::start(std::string ip)
         rec.detach();
     }
 
-	return response;
+    return response;
 }
 
 void Client::sender(std::string input)
@@ -65,26 +76,26 @@ void Client::sender(std::string input)
         mInput = input;
 
         int response;
-		
+
         // reset variables
-        isOK = true;
-		
-        if (singleFile == true)
+        mIsOK = true;
+
+        if (mSingleFile == true)
         {
-            remote_ip = "broadcast";
+            mRemoteIp = "broadcast";
         }
-        
+
         // Send file
-        if (input.substr(0, 2) == "-f")
+        if (mInput.substr(0, 2) == "-f")
         {
             readPath();
         }
         else
         {
-            message = "mcm:1.0:text:" + input;
-            output = "mcm:1.0:text:" + input;
+            mMessage = "mcm:1.0:text:" + mInput;
+            mOutput = "mcm:1.0:text:" + mInput;
 
-            response = send(sock, message.c_str(), message.size(), 0);
+            response = send(mSock, mMessage.c_str(), mMessage.size(), 0);
 
             if (response == SOCKET_ERROR)
             {
@@ -94,16 +105,16 @@ void Client::sender(std::string input)
             {
                 //std::dynamic_pointer_cast<TextArea>(Display::guiManager.getObject("console"))->addLine("Send message: " + mOutput, sf::Color::Green);
             }
-        }         
+        }
     }
 }
 
-void WClient::sendNextFile(std::string ip)
+void Client::sendNextFile(std::string ip)
 {
-    output = "mcm:1.0:send next:" + remote_ip + ":end:";
-    message = "mcm:1.0:send next:" + remote_ip + ":end:";
+    mOutput = "mcm:1.0:send next:" + mRemoteIp + ":end:";
+    mMessage = "mcm:1.0:send next:" + mRemoteIp + ":end:";
 
-    int response = send(sock, message.c_str(), message.size(), 0);
+    int response = send(mSock, mMessage.c_str(), mMessage.size(), 0);
 
     if (response == SOCKET_ERROR)
     {
@@ -113,26 +124,26 @@ void WClient::sendNextFile(std::string ip)
 
 void Client::sendFile()
 {
-    if (singleFile == false)
+    if (mSingleFile == false)
     {
-        if (files_It != m_Files.end())
+        if (mFilesIt != mFiles.end())
         {
-            if (std::filesystem::is_directory(files_It->c_str()) == true)
+            if (std::filesystem::is_directory(mFilesIt->c_str()) == true)
             {
-                isDirectory = "true";
+                mIsDirectory = "true";
             }
             else
             {
-                isDirectory = "false";
+                mIsDirectory = "false";
             }
 
-            readFile(files_It->c_str());
+            readFile(mFilesIt->c_str());
 
-            files_It++;
+            mFilesIt++;
         }
         else
         {
-            singleFile = true;
+            mSingleFile = true;
         }
     }
 }
@@ -141,13 +152,13 @@ void Client::readPath()
 {
     std::string filename{ "" };
 
-    std::vector<std::string> parts{ Tools::split(input, ' ') };
+    std::vector<std::string> parts{ Tools::split(mInput, ' ') };
 
     for (int i{ 1 }; i < parts.size(); i++)
     {
         if (parts.at(i).substr(0, 3) == "ip=")
         {
-            remote_ip = parts.at(i).substr(3, parts.at(i).length() - 3);
+            mRemoteIp = parts.at(i).substr(3, parts.at(i).length() - 3);
         }
         else if (parts.at(i).substr(0, 5) == "file=")
         {
@@ -155,23 +166,23 @@ void Client::readPath()
 
             std::vector<std::string> pathParts{ Tools::split(filename, '/') };
 
-            offset = filename.size() - pathParts.at(pathParts.size() - 1).size();
+            mOffset = filename.size() - pathParts.at(pathParts.size() - 1).size();
 
             if (std::filesystem::is_directory(filename) == true)
             {
-                singleFile = false;
+                mSingleFile = false;
 
-                m_Files = Tools::readDirectory(filename);
+                mFiles = Tools::readDirectory(filename);
 
-                files_It = m_Files.begin();
+                mFilesIt = mFiles.begin();
 
                 sendFile();
             }
             else
             {
-                singleFile = true;
+                mSingleFile = true;
 
-                isDirectory = "false";
+                mIsDirectory = "false";
 
                 readFile(filename);
             }
@@ -180,7 +191,7 @@ void Client::readPath()
         {
             std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("Wrong parameter: " + parts.at(i), sf::Color::Red);
 
-            isOK = false;
+            mIsOK = false;
 
             break;
         }                
@@ -229,7 +240,7 @@ void Client::readFile(std::string filename)
         }
         else
         {
-            isOK = false;
+            mIsOK = false;
 
             std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("File not found: " + filename, sf::Color::Red);
         }
@@ -245,13 +256,13 @@ void Client::readFile(std::string filename)
 void Client::sendFile(std::string& file, std::string filename)
 {
     // Send to server
-    if (isOK == true)
+    if (mIsOK == true)
     {
-        filename = filename.substr(offset, filename.size() - offset);
+        filename = filename.substr(mOffset, filename.size() - mOffset);
 
-        message = "mcm:1.0:data send:" + remote_ip + ":" + filename + ":" + isDirectory + ":" + file + ":end:";
+        mMessage = "mcm:1.0:data send:" + mRemoteIp + ":" + filename + ":" + mIsDirectory + ":" + file + ":end:";
 
-        int response = send(sock, message.c_str(), message.size(), 0);
+        int response = send(mSock, mMessage.c_str(), mMessage.size(), 0);
 
         if (response == SOCKET_ERROR)
         {
@@ -263,13 +274,16 @@ void Client::sendFile(std::string& file, std::string filename)
         std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("Could not send message: " + mMessage, sf::Color::Red);
     }
 }
+
 void Client::close()
 {
-    std::cout << "Shut down client..." << std::endl;   
+    std::cout << "Shut down client..." << std::endl;
 
     mExitSignal.set_value();
 
-    close(sock);
+    closesocket(mSock);
+
+    WSACleanup();
 }
 
 Client::~Client()

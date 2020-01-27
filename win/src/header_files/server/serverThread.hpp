@@ -1,15 +1,14 @@
 #ifndef SERVERTHREAD_HPP
 #define SERVERTHREAD_HPP
 
-#include <thread>
+#pragma comment(lib, "ws2_32.lib")  // Linker
+#include <cstdio>
 #include <iostream>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <netdb.h>
-#include <arpa/inet.h>
+#include <WinSock2.h>
+#include <Windows.h>
 #include <string>
 #include <vector>
+#include <thread>
 #include <map>
 
 #include <chrono>
@@ -31,11 +30,11 @@ public:
     
     void Close() const;
 
-    std::map<std::string, int> *m_clients;
+    std::map<std::string, int> *mClients;
 
 private:
 
-    int listener;
+    int mListener;
 };
 
 #endif

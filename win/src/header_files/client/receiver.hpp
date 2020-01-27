@@ -1,5 +1,5 @@
-#ifndef WRECEIVER_HPP
-#define WRECEIVER_HPP
+#ifndef RECEIVER_HPP
+#define RECEIVER_HPP
 
 #pragma comment(lib, "ws2_32.lib")  // Linker
 #include <cstdio>
@@ -11,22 +11,23 @@
 #include <vector>
 #include <thread>
 
+#include <chrono>
+#include <future>
+
 #include "../Tools.hpp"
 #include "../Base64.hpp"
 
-class WClient;
+class Client;
 
-class WReceiver
+class Receiver
 {
 public:
 
-    WReceiver(WClient* client, SOCKET sock);
+    Receiver(Client* client, SOCKET sock);
 
-    void operator()() const;
+    void operator()(std::future<void> futureObj) const;
 
-    ~WReceiver();
-
-    bool m_run;
+    ~Receiver();
 
 private:
 
@@ -34,9 +35,9 @@ private:
 
     void writeFile(std::string& file, std::string filename, std::string isDirectory) const;
 
-    WClient* mp_client;
+    Client* mpClient;
 
-    SOCKET m_sock;
+    SOCKET mSock;
 };
 
 #endif

@@ -10,6 +10,9 @@
 #include <string.h>
 #include <string>
 
+#include <chrono>
+#include <future>
+
 #include "../Tools.hpp"
 #include "../Base64.hpp"
 
@@ -19,9 +22,9 @@ public:
 
     Client();
 
-    void start();
+    int start(std::string ip);
 
-    void sender();
+    void sender(std::string input);
 
     void close();
 	
