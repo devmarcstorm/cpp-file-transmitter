@@ -3,10 +3,11 @@ cmake_minimum_required(VERSION 3.15)
 project(mcm_file_transmitter)
 
 ## If you want to link SFML statically
-# set(SFML_STATIC_LIBRARIES TRUE)
+set(SFML_STATIC_LIBRARIES FALSE)
 
 set(CMAKE_CXX_STANDARD 20)
-set(SFML_DIR "../SFML-2.5.1/lib/cmake/SFML")
+
+set(SFML_DIR "../SFML-2.5.1/Frameworks/SFML.framework/Versions/2.5.1/Resources/CMake")
 
 find_package(SFML 2.5.1 COMPONENTS graphics REQUIRED)
 

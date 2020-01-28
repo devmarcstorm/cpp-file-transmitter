@@ -21,7 +21,7 @@ int Client::start(std::string ip)
     // Create socket
     sock = socket(AF_INET, SOCK_STREAM, 0);
 
-    if (sock == INVALID_SOCKET)
+    if (sock == 0)
     {
         std::cout << "Cant create socket" << std::endl;
     }
@@ -32,11 +32,11 @@ int Client::start(std::string ip)
     inet_pton(AF_INET, ip.c_str(), &hint.sin_addr);
 
     // Connect to the server on the socket
-    response = connect(s, (sockaddr*)&hint, sizeof(hint));
+    response = connect(sock, (sockaddr*)&hint, sizeof(hint));
     
-    if (response == SOCKET_ERROR)
+    if (response == -1)
     {
-        std::cout << "(ERROR) Cant connect: " << WSAGetLastError() << std::endl;
+        std::cout << "(ERROR) Cant connect" << std::endl;
 
         std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("Cant connect to: " + ip, sf::Color::Red);
     }
@@ -48,7 +48,7 @@ int Client::start(std::string ip)
 
         std::future<void> futureObj = mExitSignal.get_future();
 
-        Receiver receiver(this, mSock);
+        Receiver receiver(this, sock);
 
         std::thread rec(receiver, std::move(futureObj));
 
@@ -60,11 +60,11 @@ int Client::start(std::string ip)
 	return response;
 }
 
-void Client::sender(std::string input)
+void Client::sender(std::string command)
 {
-    if (input != "")
+    if (command != "")
     {
-        input = input;
+        input = command;
 
         int response;
 
@@ -75,14 +75,14 @@ void Client::sender(std::string input)
         {
             help();
         }
-		else if (mInput.substr(0, 2) == "-c")
+		else if (input.substr(0, 2) == "-c")
         {
-            mMessage = "mcm:1.0:clients:end:";
-            mOutput = "mcm:1.0:clients:end:";
+            message = "mcm:1.0:clients:end:";
+            output = "mcm:1.0:clients:end:";
 
-            response = send(sock, mMessage.c_str(), mMessage.size(), 0);
+            response = send(sock, message.c_str(), message.size(), 0);
 
-            if (response == SOCKET_ERROR)
+            if (response == -1)
             {
                 std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("Could not send 'clients' message!", sf::Color::Red);
             }
@@ -106,9 +106,9 @@ void Client::sender(std::string input)
             message = "mcm:1.0:text:" + remote_ip + ":" + input + ":end:";
             output = "mcm:1.0:text:" + remote_ip + ":" + input + ":end:";
 
-            response = send(sock, mMessage.c_str(), mMessage.size(), 0);
+            response = send(sock, message.c_str(), message.size(), 0);
 
-            if (response == SOCKET_ERROR)
+            if (response == -1)
             {
                 std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("Could not send 'text' message!", sf::Color::Red);
             }
@@ -121,6 +121,7 @@ void Client::help()
     std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("-s ip=<ip> << set remote ip", sf::Color::Magenta);
     std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("-r << reset remote ip", sf::Color::Magenta);
     std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("-f ip=<ip> file=<filepath> or -f file=<filepath> << send file", sf::Color::Magenta);
+    std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("-c << shows every connected client", sf::Color::Magenta);
 }
 
 void Client::saveSettings()
@@ -150,12 +151,12 @@ void Client::saveSettings()
 
 void Client::sendNextFile(std::string ip)
 {
-    output = "mcm:1.0:send next:" + remote_ip + ":end:";
+    output = "mcm:1.0:next:" + remote_ip + ":end:";
     message = "mcm:1.0:send next:" + remote_ip + ":end:";
 
     int response = send(sock, message.c_str(), message.size(), 0);
 
-    if (response == SOCKET_ERROR)
+    if (response == -1)
     {
         std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("Could not send 'next' message!", sf::Color::Red);
     }
@@ -243,11 +244,11 @@ void Client::readPath()
 			}                
 		}
 
-		if (mIsOK == true)
+		if (isOK == true)
 		{
-			mOutput = "mcm:1.0:data send:" + mRemoteIp + ":" + filename + ":" + mIsDirectory + ":DATA:end:";
+			output = "mcm:1.0:data send:" + remote_ip + ":" + filename + ":" + isDirectory + ":DATA:end:";
 
-			std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("Send message: " + mOutput, sf::Color::Green);
+			std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("Send message: " + output, sf::Color::Green);
 		}
 	}
 }
@@ -307,21 +308,21 @@ void Client::sendFile(std::string& file, std::string filename)
     {
         filename = filename.substr(offset, filename.size() - offset);
 
-        message = "mcm:1.0:data send:" + remote_ip + ":" + filename + ":" + isDirectory + ":" + file + ":end:";
+        message = "mcm:1.0:data:" + remote_ip + ":" + filename + ":" + isDirectory + ":" + file + ":end:";
 
         int response = send(sock, message.c_str(), message.size(), 0);
 
-        if (response == SOCKET_ERROR)
+        if (response == -1)
         {
             std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("Could not send 'file'!", sf::Color::Red);
         }
     }
     else
     {
-        std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("Could not send message: " + mMessage, sf::Color::Red);
+        std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("Could not send message: " + message, sf::Color::Red);
     }
 }
-void Client::close()
+void Client::Close()
 {
     std::cout << "Shut down client..." << std::endl;   
 

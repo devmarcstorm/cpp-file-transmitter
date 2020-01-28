@@ -39,7 +39,7 @@ void ClientMenu::leave()
 
 	if (mBroken == false)
 	{
-		mClient.close();
+		mClient.Close();
 	}
 }
 
@@ -49,7 +49,7 @@ void ClientMenu::handleEvents(Display& display)
 	{
 		if (mBroken == false)
 		{
-			mClient.close();
+			mClient.Close();
 		}
 
 		display.mpWindow->close();
@@ -96,11 +96,9 @@ void ClientMenu::createGUI(Display& display)
 	Display::mGUIManager.registerObject("console", std::shared_ptr<GUIObject>(new TextArea
 	(sf::Vector2f(display.mpWindow->getSize().x * 0.95f, 620.f), sf::Vector2f(display.mpWindow->getSize().x * 0.5f, 320.f), sf::Color(50, 50, 50, 150), Display::mFont, 15, 50)));
 
-	Display::mGUIManager.registerObject("input", std::shared_ptr<GUIObject>(new Textbox
-	("Message", sf::Vector2f(1000.f, 50.f), sf::Vector2f(532.f, 675.f), sf::Color(100, 100, 125, 150), Display::mFont, 15, 50, false, std::vector<char>())));
+	Display::mGUIManager.registerObject("input", std::shared_ptr<GUIObject>(new Textbox("Message", sf::Vector2f(1000.f, 50.f), sf::Vector2f(532.f, 675.f), sf::Color(100, 100, 125, 150), Display::mFont, 15, 50, false, std::vector<char>())));
 
-	Display::mGUIManager.registerObject("quit", std::shared_ptr<GUIObject>(new Button
-	("Quit", sf::Vector2f(200.f, 50.f), sf::Vector2f(1148.f, 675.f), sf::Color(100, 125, 100, 150), Display::mFont, 20)));
+	Display::mGUIManager.registerObject("quit", std::shared_ptr<GUIObject>(new Button("Quit", sf::Vector2f(200.f, 50.f), sf::Vector2f(1148.f, 675.f), sf::Color(100, 125, 100, 150), Display::mFont, 20)));
 }
 
 ClientMenu::~ClientMenu()

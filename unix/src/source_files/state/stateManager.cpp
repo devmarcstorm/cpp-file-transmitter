@@ -44,8 +44,6 @@ void StateManager::setState(std::string name, Display& display)
 		std::cout << "No state with name: " << name << std::endl;
 
 		std::string error("No state with name: " + name);
-
-		throw std::exception(error.c_str());
 	}
 }
 

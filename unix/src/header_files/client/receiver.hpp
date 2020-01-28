@@ -24,7 +24,7 @@ class Receiver
 {
 public:
 
-    Receiver(Client* client, SOCKET sock);
+    Receiver(Client* client, int sock);
 
     void operator()(std::future<void> futureObj) const;
 
@@ -38,9 +38,9 @@ private:
 
     void writeFile(std::string& file, std::string filename, std::string isDirectory) const;
 
-    WClient* mp_client;
+    Client* mp_client;
 
-    SOCKET m_sock;
+    int m_sock;
 };
 
 #endif

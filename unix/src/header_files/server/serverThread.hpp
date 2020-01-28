@@ -31,7 +31,7 @@ public:
     
     void Close() const;
 
-    std::map<std::string, int> *m_clients;
+    std::map<std::string, int> *mClients;
 
 private:
 

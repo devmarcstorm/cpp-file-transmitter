@@ -62,7 +62,7 @@ void ServerMenu::leave()
 	{
 		if (mBrokenClient == false)
 		{
-			mClient.close();
+			mClient.Close();
 		}
 
 		mExitSignal.set_value();
@@ -77,7 +77,7 @@ void ServerMenu::handleEvents(Display& display)
 		{
 			if (mBrokenClient == false)
 			{
-				mClient.close();
+				mClient.Close();
 			}
 
 			mExitSignal.set_value();

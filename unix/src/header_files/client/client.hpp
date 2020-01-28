@@ -9,6 +9,9 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <string>
+#include <vector>
+#include <thread>
+#include <fstream>
 
 #include <chrono>
 #include <future>
@@ -26,7 +29,7 @@ public:
 
     void sender(std::string input);
 
-    void close();
+    void Close();
 	
 	void sendNextFile(std::string ip);
 
@@ -44,7 +47,7 @@ private:
     void readFile(std::string filename);
     void sendFile(std::string& file, std::string filename);
 
-    SOCKET sock;
+    int sock;
 
     bool isOK;
     bool singleFile;
@@ -54,6 +57,8 @@ private:
     std::string message;
     std::string output;
     std::string input;
+
+    std::promise<void> mExitSignal;
 
     int offset;
 

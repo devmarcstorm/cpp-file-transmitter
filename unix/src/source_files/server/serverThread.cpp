@@ -45,7 +45,7 @@
 
 		fd_set read_fds;
 		FD_ZERO(&read_fds);
-		FD_SET(mListener, &read_fds);
+		FD_SET(listener, &read_fds);
 
 		timeval timeout;
 		timeout.tv_sec = 15;
@@ -56,12 +56,13 @@
 		while (futureObj.wait_for(std::chrono::milliseconds(1)) == std::future_status::timeout)
 		{
 			 // select() is non-blocking
-			select_status = select(mListener, &read_fds, NULL, NULL, &timeout);
+			select_status = select(listener + 1, &read_fds, NULL, NULL, &timeout);
 
 			if (select_status > 0)
-			{            
+			{     
+				       
 				// get client
-				int clientSocket = accept(s, (sockaddr *)&client, &clientSize);
+				int clientSocket = accept(listener, (sockaddr *)&client, &clientSize);
 
 				char hostname[NI_MAXHOST];
 				char port[NI_MAXSERV];
@@ -78,22 +79,22 @@
 					inet_ntop(AF_INET, &client.sin_addr, hostname, NI_MAXHOST);
 					std::cout << "Client " << hostname << " connected! Port " << port << std::endl;
 				}
-				
+
 				ClientThread clientthread(hostname, clientSocket, this);
 				std::thread newClient(clientthread);
 
 				newClient.detach();
 
-				m_clients->insert(std::pair<std::string, int>(hostname, clientSocket));
+				mClients->insert(std::pair<std::string, int>(hostname, clientSocket));
 
-				std::cout << "Count of connected clients: " << m_clients->size() << std::endl;
+				std::cout << "Count of connected clients: " << mClients->size() << std::endl;
 			}
         }
 
 		Close();
     }
 
-    void ServerThread::Close()
+    void ServerThread::Close() const
     {
 		close(listener);
 

@@ -33,8 +33,6 @@ std::shared_ptr<GUIObject> GUIManager::getObject(std::string name)
 		std::cout << "No guiObject with name: " << name << std::endl;
 
 		std::string error("No guiObject with name: " + name);
-
-		throw std::exception(error.c_str());
 	}
 }
 

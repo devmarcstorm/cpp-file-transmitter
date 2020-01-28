@@ -6,7 +6,7 @@
 
 #include "../../header_files/display.hpp"
 
-Receiver::Receiver(Client* client, SOCKET sock) :
+Receiver::Receiver(Client* client, int sock) :
     mp_client{client},
     m_sock{sock}
 {
@@ -29,14 +29,14 @@ void Receiver::operator()(std::future<void> futureObj) const
 
     char buffer[4096];
 
-    while (m_run)
+    while (futureObj.wait_for(std::chrono::milliseconds(1)) == std::future_status::timeout)
     {
         memset(buffer, 0, 4096); // Initialize/Cleanup buffer
 
         // Wait for response
         received = recv(m_sock, buffer, 4096, 0);
 
-        if (received == SOCKET_ERROR)
+        if (received == -1)
         {
             std::cerr << "Error response from server" << std::endl;
 
@@ -201,7 +201,7 @@ void Receiver::writeFile(std::string& file, std::string filename, std::string is
             fclose(f);
         }
     }
-    else
+   else
     {
         std::cout << "Cant create dirctory" << std::endl;
     }

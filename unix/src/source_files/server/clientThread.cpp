@@ -30,7 +30,7 @@ void ClientThread::operator()() const
         // Wait for client to send data
         int received = recv(mClientSocket, buffer, 4096, 0);
 
-        if (received == SOCKET_ERROR)
+        if (received == -1)
         {
             std::cerr << mIp << " disconneted" << std::endl;
             break;
@@ -94,7 +94,7 @@ void ClientThread::operator()() const
 
                     sendMessage(mIp, message, "CLIENTS");
                 }
-                if (parts.at(2) == "text")
+                else if (parts.at(2) == "text")
                 {
                     remote_ip = parts.at(3);
 

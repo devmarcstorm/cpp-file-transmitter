@@ -2,7 +2,7 @@
 
 #include "../../header_files/display.hpp"
 
-Textbox::Textbox(std::string text, sf::Vector2f size, sf::Vector2f position, sf::Color color, sf::Font& font, int fontsize, int maxChars, bool centered, std::vector<char>& allowedChars) :
+Textbox::Textbox(std::string text, sf::Vector2f size, sf::Vector2f position, sf::Color color, sf::Font& font, int fontsize, int maxChars, bool centered, std::vector<char> allowedChars) :
 	mColor{ color },
 	mHightlightColor{ color + sf::Color(50, 50, 50) },
 	mPosition{ position },
@@ -99,7 +99,7 @@ void Textbox::handleEvents(Display& display)
 		{
 			std::string Input{ "" };
 
-			if (display.mpEvent->text.unicode == 13)
+			if (display.mpEvent->text.unicode == 8364)
 			{
 				mCurrentState = GUIObjectStates::TEXT_ENTERED;
 			}
