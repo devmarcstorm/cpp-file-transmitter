@@ -37,7 +37,7 @@ void ServerMenu::enter(Display& display)
 
 		mBrokenServer = false;
 
-		std::this_thread::sleep_for(std::chrono::milliseconds(2000)); // Wait for listener to set up before try to connect
+		std::this_thread::sleep_for(std::chrono::milliseconds(3000)); // Wait for listener to set up before try to connect
 
 		if (mClient.start("127.0.0.1") == -1)
 		{

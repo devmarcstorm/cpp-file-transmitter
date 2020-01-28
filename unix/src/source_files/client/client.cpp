@@ -75,6 +75,18 @@ void Client::sender(std::string input)
         {
             help();
         }
+		else if (mInput.substr(0, 2) == "-c")
+        {
+            mMessage = "mcm:1.0:clients:end:";
+            mOutput = "mcm:1.0:clients:end:";
+
+            response = send(sock, mMessage.c_str(), mMessage.size(), 0);
+
+            if (response == SOCKET_ERROR)
+            {
+                std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("Could not send 'clients' message!", sf::Color::Red);
+            }
+        }
         else if (input.substr(0, 2) == "-f")
         {
             readPath();
@@ -94,7 +106,7 @@ void Client::sender(std::string input)
             message = "mcm:1.0:text:" + remote_ip + ":" + input + ":end:";
             output = "mcm:1.0:text:" + remote_ip + ":" + input + ":end:";
 
-            response = send(mSock, mMessage.c_str(), mMessage.size(), 0);
+            response = send(sock, mMessage.c_str(), mMessage.size(), 0);
 
             if (response == SOCKET_ERROR)
             {

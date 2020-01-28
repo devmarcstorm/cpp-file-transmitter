@@ -74,7 +74,27 @@ void ClientThread::operator()() const
             else
             {
                 // message types
-                if (parts.at(2) == "text")
+                if (parts.at(2) == "clients")
+                {
+                    message.clear();
+
+                    message = "mcm:1.0:clients:";
+
+                    std::map<std::string, int>::iterator It;
+
+                    for (It = mpServer->mClients->begin(); It != mpServer->mClients->end(); It++)
+                    {
+                        if (It->first != mIp)
+                        {
+                            message += It->first + ",";
+                        }
+                    }
+
+                    message += ":end:";
+
+                    sendMessage(mIp, message, "CLIENTS");
+                }
+                else if (parts.at(2) == "text")
                 {
                     remote_ip = parts.at(3);
 

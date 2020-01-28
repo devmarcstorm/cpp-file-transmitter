@@ -56,7 +56,25 @@ void Receiver::operator()(std::future<void> futureObj) const
                     if (parts.at(0) == "mcm" && parts.at(parts.size() - 1) == "end") // receiving full message
                     {
                         // message types
-                        if (parts.at(2) == "text") // just text
+						if (parts.at(2) == "clients") // connected clients
+                        {
+                            std::string clients{ parts.at(3) };
+
+                            std::vector<std::string> ips{ Tools::split(clients, ',') };
+
+                            if (ips.empty())
+                            {
+                                std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("There are no other clients connected", sf::Color::White);
+                            }
+                            else
+                            {
+                                for (int i{ 0 }; i < ips.size(); i++)
+                                {
+                                    std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine(ips.at(i), sf::Color::White);
+                                }
+                            }
+                        }
+                        else if (parts.at(2) == "text") // just text
                         {
                             std::string text{ parts.at(4) };
 

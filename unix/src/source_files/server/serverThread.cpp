@@ -48,7 +48,7 @@
 		FD_SET(mListener, &read_fds);
 
 		timeval timeout;
-		timeout.tv_sec = 2;
+		timeout.tv_sec = 15;
 		timeout.tv_usec = 0;
 
 		int select_status;
