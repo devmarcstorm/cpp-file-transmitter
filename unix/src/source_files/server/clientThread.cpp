@@ -3,9 +3,9 @@
 #include "../../header_files/server/serverThread.hpp"
 
 ClientThread::ClientThread(char* ip, int clientSocket, const ServerThread* server) :
-    m_ip{ip},
-    m_clientSocket{clientSocket},
-    mp_server{server}
+    mIp{ip},
+    mClientSocket{clientSocket},
+    mpServer{server}
 {
     std::cout << "New client created" << std::endl;
 }
@@ -17,7 +17,7 @@ ClientThread::~ClientThread()
 
 void ClientThread::operator()() const
 {
-    std::cout << "Client: " << m_clientSocket << " start receiving" << std::endl;
+    std::cout << "Client: " << mClientSocket << " start receiving" << std::endl;
 
     char buffer[4096];
 
@@ -28,11 +28,11 @@ void ClientThread::operator()() const
         memset(buffer, 0, 4096); // Initialize/Cleanup buffer
 
         // Wait for client to send data
-        int received = recv(m_clientSocket, buffer, 4096, 0);
+        int received = recv(mClientSocket, buffer, 4096, 0);
 
         if (received == SOCKET_ERROR)
         {
-            std::cerr << m_ip << " disconneted" << std::endl;
+            std::cerr << mIp << " disconneted" << std::endl;
             break;
         }
 
@@ -41,20 +41,20 @@ void ClientThread::operator()() const
             // remove client from list
             std::map<std::string, int>::iterator It;
 
-            It = mp_server->m_clients->find(m_ip);
+            It = mpServer->mClients->find(mIp);
 
-            if (It != mp_server->m_clients->end())
+            if (It != mpServer->mClients->end())
             {
-                It = mp_server->m_clients->erase(It);
+                It = mpServer->mClients->erase(It);
             }
             else
             {
                 std::cout << "Some mysterious error occurs" << std::endl;
             }
 
-            std::cout << m_ip << " disconnected" << std::endl;
+            std::cout << mIp << " disconnected" << std::endl;
 
-            std::cout << "Count of connected clients: " << mp_server->m_clients->size() << std::endl;
+            std::cout << "Count of connected clients: " << mpServer->mClients->size() << std::endl;
 
             break;
         }
@@ -66,116 +66,70 @@ void ClientThread::operator()() const
         {
             std::vector<std::string> parts{ Tools::split(message, ':') };
 
+            // data send end
             if ((parts.at(0) != "mcm" && parts.at(parts.size() - 1) == "end") || parts.size() == 1)
             {
-                std::map<std::string, int>::iterator It;
-
-                if (remote_ip == "broadcast")
-                {
-                    std::cout << "Broadcast 'data append' to all connected clients" << std::endl;
-
-                    // send data to all clients
-                    for (It = mp_server->m_clients->begin(); It != mp_server->m_clients->end(); It++)
-                    {
-                        // but not to the source
-                        if (It->first != m_ip)
-                        {
-                            send(It->second, buffer, sizeof(buffer), 0);
-                        }
-                    }
-                }
-                else
-                {
-                    // find the client of the remote_ip
-                    It = mp_server->m_clients->find(remote_ip);
-
-                    if (It != mp_server->m_clients->end())
-                    {
-                        std::cout << "Redirect 'data append' to " << remote_ip << std::endl;
-
-                        send(It->second, buffer, sizeof(buffer), 0);
-                    }
-                    else
-                    {
-                        std::cout << "(DATA APPEND) No client with ip " << remote_ip << " connected" << std::endl;
-                    }
-                }
+                sendMessage(remote_ip, message, "DATA APPEND");
             }
             else
             {
                 // message types
-                if (parts.at(2) == "text") // text for the server
+                if (parts.at(2) == "text")
                 {
-                    std::string text{ parts.at(3) };
+                    remote_ip = parts.at(3);
 
-                    std::cout << text << std::endl;
-
-                    // Echo message back to client
-                    send(m_clientSocket, buffer, sizeof(buffer), 0);
+                    sendMessage(remote_ip, message, "TEXT");
                 }
-                else if (parts.at(2) == "send next")
+                else if (parts.at(2) == "next")
                 {
-                    // find the client of the remote_ip
-                    std::map<std::string, int>::iterator It{ mp_server->m_clients->find(remote_ip) };
-
-                    if (It != mp_server->m_clients->end())
-                    {
-                        std::cout << "Redirect 'next' to " << remote_ip << std::endl;
-
-                        send(It->second, buffer, sizeof(buffer), 0);
-                    }
-                    else
-                    {
-                        std::cout << "(NEXT) No client with ip " << remote_ip << " connected" << std::endl;
-                    }
-
-                    // Echo message back to client
-                    send(It->second, buffer, sizeof(buffer), 0);
+                    sendMessage(remote_ip, message, "NEXT");
                 }
                 else
                 {
-                    if (parts.at(2) == "data send")
+                    if (parts.at(2) == "data")
                     {
                         remote_ip = parts.at(3);
                     }
 
-                    std::map<std::string, int>::iterator It;
-
-                    if (remote_ip == "broadcast")
-                    {
-                        std::cout << "Broadcast 'data' to all connected clients" << std::endl;
-
-                        // send data to all clients
-                        for (It = mp_server->m_clients->begin(); It != mp_server->m_clients->end(); It++)
-                        {
-                            // but not to the source
-                            if (It->first != m_ip)
-                            {
-                                send(It->second, buffer, sizeof(buffer), 0);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        // find the client of the remote_ip
-                        It = mp_server->m_clients->find(remote_ip);
-
-                        if (It != mp_server->m_clients->end())
-                        {
-                            std::cout << "Redirect 'data' to " << remote_ip << std::endl;
-
-                            send(It->second, buffer, sizeof(buffer), 0);
-                        }
-                        else
-                        {
-                            std::cout << "(DATA) No client with ip " << remote_ip << " connected" << std::endl;
-                        }
-                    }
+                    sendMessage(remote_ip, message, "DATA");
                 }
             }
         }
     }
 
     // Close the socket
-    close(m_clientSocket);
+    close(mClientSocket);
+}
+
+void ClientThread::sendMessage(std::string ip, std::string& message, std::string info) const
+{
+    std::map<std::string, int>::iterator It;
+
+    if (ip == "broadcast")
+    {
+        std::cout << info << " Broadcast to all connected clients" << std::endl;
+
+        for (It = mpServer->mClients->begin(); It != mpServer->mClients->end(); It++)
+        {
+            if (It->first != mIp)
+            {
+                send(It->second, message.c_str(), message.size(), 0);
+            }
+        }
+    }
+    else
+    {
+        It = mpServer->mClients->find(ip);
+
+        if (It != mpServer->mClients->end())
+        {
+            std::cout << info << " Redirect to " << ip << std::endl;
+
+            send(It->second, message.c_str(), message.size(), 0);
+        }
+        else
+        {
+            std::cout << info << " No client with ip " << ip << " connected" << std::endl;
+        }
+    }
 }

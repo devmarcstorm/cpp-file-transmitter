@@ -18,6 +18,8 @@ public:
 
 private:
 
+    void sendMessage(std::string ip, std::string& message, std::string info) const;
+
     char* mIp;
 
     int mClientSocket;

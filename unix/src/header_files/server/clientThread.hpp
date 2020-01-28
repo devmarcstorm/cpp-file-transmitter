@@ -18,11 +18,13 @@ public:
 
 private:
 
-    char* m_ip;
+    void sendMessage(std::string ip, std::string& message, std::string info) const;
 
-    int m_clientSocket;
+    char* mIp;
 
-    const ServerThread* mp_server;
+    int mClientSocket;
+
+    const ServerThread* mpServer;
 };
 
 #endif

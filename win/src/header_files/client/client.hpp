@@ -37,6 +37,10 @@ public:
 
 private:
 
+    void help();
+
+    void saveSettings();
+
     void readPath();
     void readFile(std::string filename);
     void sendFile(std::string& file, std::string filename);

@@ -58,9 +58,11 @@ void Receiver::operator()(std::future<void> futureObj) const
                         // message types
                         if (parts.at(2) == "text") // just text
                         {
-                            std::string text{ parts.at(3) };
+                            std::string text{ parts.at(4) };
+
+                            std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine(parts.at(4), sf::Color::White);
                         }
-                        else if (parts.at(2) == "data send") // file to send
+                        else if (parts.at(2) == "data") // file to send
                         {
                             setFileInfos(fileTransfer, remote_ip, filename, isDirectory, file, parts);
 
@@ -70,13 +72,12 @@ void Receiver::operator()(std::future<void> futureObj) const
 
                             mp_client->sendNextFile(remote_ip);
                         }
-                        else if (parts.at(2) == "send next")
+                        else if (parts.at(2) == "next")
                         {
                             mp_client->sendFile();
                         }
                     }
-
-                    if (parts.at(0) != "mcm" && parts.at(parts.size() - 1) == "end") // receiving data end
+                    else if (parts.at(0) != "mcm" && parts.at(parts.size() - 1) == "end") // receiving data end
                     {
                         if (fileTransfer == false)
                         {
@@ -98,13 +99,15 @@ void Receiver::operator()(std::future<void> futureObj) const
                         // message types
                         if (parts.at(2) == "text") // just text
                         {
-                            std::string text{ parts.at(3) };
+                            std::string text{ parts.at(4) };
+
+                            std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine(parts.at(4), sf::Color::White);
                         }
-                        else if (parts.at(2) == "data send") // file to send
+                        else if (parts.at(2) == "data") // file to send
                         {
                             setFileInfos(fileTransfer, remote_ip, filename, isDirectory, file, parts);
                         }
-                        else if (parts.at(2) == "send next")
+                        else if (parts.at(2) == "next")
                         {
                             mp_client->sendFile();
                         }

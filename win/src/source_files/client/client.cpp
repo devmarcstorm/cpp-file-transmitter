@@ -66,6 +66,8 @@ int Client::start(std::string ip)
         rec.detach();
     }
 
+    mRemoteIp = "broadcast";
+
     return response;
 }
 
@@ -80,20 +82,28 @@ void Client::sender(std::string input)
         // reset variables
         mIsOK = true;
 
-        if (mSingleFile == true)
+        if (mInput.substr(0, 2) == "-i")
         {
-            mRemoteIp = "broadcast";
+            help();
         }
-
-        // Send file
-        if (mInput.substr(0, 2) == "-f")
+        else if (mInput.substr(0, 2) == "-f")
         {
             readPath();
         }
+        else if (mInput.substr(0, 2) == "-s")
+        {
+            saveSettings();
+        }
+        else if (mInput.substr(0, 2) == "-r")
+        {
+            mRemoteIp = "broadcast";
+
+            std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("Reset remote ip to: broadcast (to all)", sf::Color::Magenta);
+        }
         else
         {
-            mMessage = "mcm:1.0:text:" + mInput;
-            mOutput = "mcm:1.0:text:" + mInput;
+            mMessage = "mcm:1.0:text:" + mRemoteIp + ":" + mInput + ":end:";
+            mOutput = "mcm:1.0:text:" + mRemoteIp + ":" + mInput + ":end:";
 
             response = send(mSock, mMessage.c_str(), mMessage.size(), 0);
 
@@ -101,9 +111,37 @@ void Client::sender(std::string input)
             {
                 std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("Could not send 'text' message!", sf::Color::Red);
             }
+        }
+    }
+}
+
+void Client::help()
+{
+    std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("-s ip=<ip> << set remote ip", sf::Color::Magenta);
+    std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("-r << reset remote ip", sf::Color::Magenta);
+    std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("-f ip=<ip> file=<filepath> or -f file=<filepath> << send file", sf::Color::Magenta);
+}
+
+void Client::saveSettings()
+{
+    std::vector<std::string> parts{ Tools::split(mInput, ' ') };
+
+    if (parts.size() == 1)
+    {
+        std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("Syntax: -s ip=<ip>", sf::Color::Magenta);
+    }
+    else
+    {
+        for (int i{ 1 }; i < parts.size(); i++)
+        {
+            if (parts.at(i).substr(0, 3) == "ip=")
+            {
+                mRemoteIp = parts.at(i).substr(3, parts.at(i).length() - 3);
+            }
             else
             {
-                //std::dynamic_pointer_cast<TextArea>(Display::guiManager.getObject("console"))->addLine("Send message: " + mOutput, sf::Color::Green);
+                std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("Wrong parameter: " + parts.at(i), sf::Color::Red);
+                std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("Syntax: -s ip=<ip>", sf::Color::Magenta);
             }
         }
     }
@@ -111,8 +149,8 @@ void Client::sender(std::string input)
 
 void Client::sendNextFile(std::string ip)
 {
-    mOutput = "mcm:1.0:send next:" + mRemoteIp + ":end:";
-    mMessage = "mcm:1.0:send next:" + mRemoteIp + ":end:";
+    mOutput = "mcm:1.0:next:" + mRemoteIp + ":end:";
+    mMessage = "mcm:1.0:next:" + mRemoteIp + ":end:";
 
     int response = send(mSock, mMessage.c_str(), mMessage.size(), 0);
 
@@ -154,54 +192,62 @@ void Client::readPath()
 
     std::vector<std::string> parts{ Tools::split(mInput, ' ') };
 
-    for (int i{ 1 }; i < parts.size(); i++)
+    if (parts.size() == 1)
     {
-        if (parts.at(i).substr(0, 3) == "ip=")
+        std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("Syntax: -f ip=<ip> file=<filepath> or -f file=<filepath>", sf::Color::Magenta);
+    }
+    else
+    {
+        for (int i{ 1 }; i < parts.size(); i++)
         {
-            mRemoteIp = parts.at(i).substr(3, parts.at(i).length() - 3);
-        }
-        else if (parts.at(i).substr(0, 5) == "file=")
-        {
-            filename = parts.at(i).substr(5, parts.at(i).length() - 5);
-
-            std::vector<std::string> pathParts{ Tools::split(filename, '/') };
-
-            mOffset = filename.size() - pathParts.at(pathParts.size() - 1).size();
-
-            if (std::filesystem::is_directory(filename) == true)
+            if (parts.at(i).substr(0, 3) == "ip=")
             {
-                mSingleFile = false;
+                mRemoteIp = parts.at(i).substr(3, parts.at(i).length() - 3);
+            }
+            else if (parts.at(i).substr(0, 5) == "file=")
+            {
+                filename = parts.at(i).substr(5, parts.at(i).length() - 5);
 
-                mFiles = Tools::readDirectory(filename);
+                std::vector<std::string> pathParts{ Tools::split(filename, '/') };
 
-                mFilesIt = mFiles.begin();
+                mOffset = filename.size() - pathParts.at(pathParts.size() - 1).size();
 
-                sendFile();
+                if (std::filesystem::is_directory(filename) == true)
+                {
+                    mSingleFile = false;
+
+                    mFiles = Tools::readDirectory(filename);
+
+                    mFilesIt = mFiles.begin();
+
+                    sendFile();
+                }
+                else
+                {
+                    mSingleFile = true;
+
+                    mIsDirectory = "false";
+
+                    readFile(filename);
+                }
             }
             else
             {
-                mSingleFile = true;
+                std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("Wrong parameter: " + parts.at(i), sf::Color::Red);
+                std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("Syntax: -f ip=<ip> file=<filepath> or -f file=<filepath>", sf::Color::Magenta);
 
-                mIsDirectory = "false";
+                mIsOK = false;
 
-                readFile(filename);
+                break;
             }
         }
-        else
+
+        if (mIsOK == true)
         {
-            std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("Wrong parameter: " + parts.at(i), sf::Color::Red);
+            mOutput = "mcm:1.0:data:" + mRemoteIp + ":" + filename + ":" + mIsDirectory + ":DATA:end:";
 
-            mIsOK = false;
-
-            break;
-        }                
-    }
-
-    if (mIsOK == true)
-    {
-        mOutput = "mcm:1.0:data send:" + mRemoteIp + ":" + filename + ":" + mIsDirectory + ":DATA:end:";
-
-        std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("Send message: " + mOutput, sf::Color::Green);
+            std::dynamic_pointer_cast<TextArea>(Display::mGUIManager.getObject("console"))->addLine("Send message: " + mOutput, sf::Color::Green);
+        }
     }
 }
 
@@ -260,7 +306,7 @@ void Client::sendFile(std::string& file, std::string filename)
     {
         filename = filename.substr(mOffset, filename.size() - mOffset);
 
-        mMessage = "mcm:1.0:data send:" + mRemoteIp + ":" + filename + ":" + mIsDirectory + ":" + file + ":end:";
+        mMessage = "mcm:1.0:data:" + mRemoteIp + ":" + filename + ":" + mIsDirectory + ":" + file + ":end:";
 
         int response = send(mSock, mMessage.c_str(), mMessage.size(), 0);
 
